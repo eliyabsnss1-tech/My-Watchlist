@@ -12,4 +12,8 @@ The installed app updates itself by comparing `APP_VERSION` in `index.html` with
 4. If you add a new file the app needs offline, add it to `SHELL` in `sw.js` and bump `V` there.
 5. Commit and `git push` to `main`. GitHub Pages deploys in about a minute; the phone picks it up the next time the app is opened or brought back to the front (or within 5 minutes while open). Settings ▸ "Check for updates now" forces it.
 
+## App layout
+
+The app opens on a Home page (tiles, two per row) with a left side menu (☰ top-left). Each tile/menu entry is a "section" listed in the `SECTIONS` array in `index.html`. To add a new app the user mentions, add one entry there: `{ id, title, desc, color, icon, url }`. Entries with a `url` show that site full-screen inside the app (iframe); `watchlist` is the built-in one.
+
 User data lives in the phone's localStorage (`ws.settings`, `ws.list`, `ws.view`) — never rename those keys without a migration.

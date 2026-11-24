@@ -186,13 +186,52 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 .drow{display:flex;gap:12px;align-items:center;padding:8px;margin:0 0 8px;background:var(--surf);border-radius:18px}
 .drow .poster{width:44px;height:66px;border-radius:9px}
 .drow .info .t{font-size:15px}
+
+/* sections: home page, side menu, embedded apps */
+header .left{display:flex;align-items:center;gap:10px;min-width:0}
+header h1{font-size:27px}
+header .iconbtn{width:42px;height:42px}
+#home{max-width:640px;margin:0 auto;min-height:100dvh;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+.greet{padding:0 18px 16px;color:var(--mut);font-size:15px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px}
+.tile{min-height:190px;border-radius:26px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;
+  color:#0b0d12;background:linear-gradient(155deg,rgba(255,255,255,.22),rgba(0,0,0,.18)),var(--c);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.tile:active{transform:scale(.97)}
+.tile .ic{width:48px;height:48px;border-radius:16px;background:rgba(0,0,0,.14);display:grid;place-items:center}
+.tile .ic svg{width:26px;height:26px}
+.tile b{display:block;font-size:20px;line-height:1.15;margin-bottom:4px}
+.tile span{font-size:13px;opacity:.72;line-height:1.3}
+.drawer{position:fixed;inset:0;z-index:70}
+.drawer .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .25s}
+.drawer.open .scrim{opacity:1}
+.dpanel{position:absolute;top:0;bottom:0;left:0;width:min(300px,82vw);background:var(--surf);border-radius:0 26px 26px 0;overflow-y:auto;
+  transform:translateX(-100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);padding:calc(18px + env(safe-area-inset-top)) 12px 24px}
+.drawer.open .dpanel{transform:none}
+.dpanel h2{margin:4px 12px 14px;font-size:22px}
+.dlabel{font-size:12px;text-transform:uppercase;color:var(--mut);letter-spacing:.6px;margin:14px 14px 6px}
+.ditem{display:flex;align-items:center;gap:14px;width:100%;height:54px;padding:0 12px;border-radius:16px;font-size:16px;font-weight:600;text-align:left}
+.ditem.on{background:var(--surf2)}
+.ditem .dot{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--c);color:#0b0d12;flex:none}
+.ditem .dot svg{width:20px;height:20px}
+.fview{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.fbar{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;flex:none}
+.fbar h1{margin:0;font-size:21px;font-weight:700}
+.fview iframe{flex:1;width:100%;border:0;display:block}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="home" hidden>
   <header>
-    <h1>Watchlist</h1>
-    <div style="display:flex;gap:8px">
+    <div class="left"><button class="iconbtn" data-act="menu" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><h1>Home</h1></div>
+  </header>
+  <div class="greet" id="greet"></div>
+  <div class="tiles" id="tiles"></div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="left"><button class="iconbtn" data-act="menu" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><h1>Watchlist</h1></div>
+    <div style="display:flex;gap:6px">
       <button class="iconbtn" data-act="stats" aria-label="Stats"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></button>
       <button class="iconbtn" data-act="deleted" aria-label="Recently deleted"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4.5h4.5"/><path d="M12 8v4.5l3 2"/></svg></button>
       <button class="iconbtn" data-act="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg></button>
@@ -206,7 +245,9 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
   </main>
 </div>
 
-<button class="fab" data-act="addopen" aria-label="Add a movie or show"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="drawer" id="drawer" hidden><div class="scrim" data-act="closedrawer"></div><nav class="dpanel" id="dpanel"></nav></div>
+
+<button class="fab" hidden data-act="addopen" aria-label="Add a movie or show"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <div class="sheet" id="sheet" hidden><div class="scrim" data-act="close"></div><div class="panel" id="panel"></div></div>
 <div class="page" id="page" hidden></div>
@@ -221,7 +262,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const IMG = 'https://image.tmdb.org/t/p/';
 const API = 'https://api.themoviedb.org/3';
 // Bump this together with version.json on every change – installed apps compare the two and update themselves.
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 
 /* ---------- storage ---------- */
 const LS = {
@@ -640,7 +681,7 @@ function showSheet(html) {
   p.innerHTML = html; p.scrollTop = top;
   if (!sheetOpen) {
     sh.hidden = false; void sh.offsetWidth; sh.classList.add('open');
-    history.pushState({ sheet: 1 }, ''); sheetOpen = true; p.scrollTop = 0;
+    history.pushState({ sheet: 1, sec: curSec }, ''); sheetOpen = true; p.scrollTop = 0;
   }
 }
 function hideSheet(fromPop) {
@@ -700,7 +741,7 @@ function showPage(title, html) {
     <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${esc(title)}</h1></div>${html}</div>`;
   if (!pageOpen) {
     pg.hidden = false; pg.scrollTop = 0; void pg.offsetWidth; pg.classList.add('open');
-    history.pushState({ page: 1 }, ''); pageOpen = true;
+    history.pushState({ page: 1, sec: curSec }, ''); pageOpen = true;
   }
 }
 function hidePage(fromPop) {
@@ -710,7 +751,12 @@ function hidePage(fromPop) {
   setTimeout(() => { if (!pageOpen) $('#page').hidden = true; }, 280);
   if (!fromPop) history.back();
 }
-addEventListener('popstate', () => { if (pageOpen) hidePage(true); else if (sheetOpen) hideSheet(true); });
+addEventListener('popstate', e => {
+  if (pageOpen) hidePage(true);
+  else if (sheetOpen) hideSheet(true);
+  else if (drawerOpen) closeDrawer(true);
+  else showSection((e.state && e.state.sec) || 'home');
+});
 
 function provSection(p) {
   if (!p || p.region !== settings.region) return '';
@@ -954,6 +1000,86 @@ async function refreshStale() {
   refreshing = false;
 }
 
+/* ---------- sections (home page + side menu) ----------
+   To add a new app later: add one entry here. Entries with a `url` open that site inside the app. */
+const SECTIONS = [
+  { id: 'watchlist', title: 'Watchlist', desc: 'Movies & shows to watch', color: '#8aa4ff', icon: I.film },
+  { id: 'elementscope', title: 'ElementScope', desc: 'Explore the chemical elements', color: '#4cd694',
+    url: 'https://eliyabsnss1-tech.github.io/elementscope/',
+    icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/></svg>' }
+];
+const HOME_ICON = '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>';
+const sectionById = id => SECTIONS.find(s => s.id === id);
+let curSec = '', drawerOpen = false;
+
+function tileSub(s) {
+  if (s.id === 'watchlist') {
+    const todo = list.filter(x => !x.watched).length;
+    return list.length ? `${todo} to watch · ${list.length - todo} watched` : s.desc;
+  }
+  return s.desc;
+}
+function renderHome() {
+  const h = new Date().getHours();
+  $('#greet').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  $('#tiles').innerHTML = SECTIONS.map(s => `<button class="tile" style="--c:${s.color}" data-act="go" data-sec="${s.id}">
+    <div class="ic">${s.icon}</div><div><b>${esc(s.title)}</b><span>${esc(tileSub(s))}</span></div></button>`).join('');
+}
+function showSection(id) {
+  if (id !== 'home' && !sectionById(id)) id = 'home';
+  if (id === curSec) return;
+  curSec = id;
+  $('#home').hidden = id !== 'home';
+  $('#app').hidden = id !== 'watchlist';
+  $('.fab').hidden = id !== 'watchlist';
+  const s = sectionById(id);
+  if (s && s.url && !$(`.fview[data-sec="${id}"]`)) {
+    const f = document.createElement('div');
+    f.className = 'fview'; f.dataset.sec = id;
+    f.innerHTML = `<div class="fbar"><button class="iconbtn" data-act="menu" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><h1>${esc(s.title)}</h1></div>
+      <iframe src="${esc(s.url)}" title="${esc(s.title)}" allow="clipboard-write; fullscreen"></iframe>`;
+    document.body.insertBefore(f, $('#drawer'));
+  }
+  document.querySelectorAll('.fview').forEach(f => { f.hidden = f.dataset.sec !== id; });
+  if (id === 'home') renderHome();
+  if (id === 'watchlist') renderList();
+  window.scrollTo(0, 0);
+}
+function go(id) {
+  if (id === curSec) return;
+  history.pushState({ sec: id }, '');
+  showSection(id);
+}
+function renderDrawer() {
+  const item = (id, title, color, icon) => `<button class="ditem ${curSec === id ? 'on' : ''}" data-act="pick" data-sec="${id}">
+    <span class="dot" style="--c:${color}">${icon}</span>${esc(title)}</button>`;
+  $('#dpanel').innerHTML = `<h2>My apps</h2>${item('home', 'Home', '#c9ccd6', HOME_ICON)}
+    <div class="dlabel">Categories</div>${SECTIONS.map(s => item(s.id, s.title, s.color, s.icon)).join('')}`;
+}
+function openDrawer() {
+  if (drawerOpen) return;
+  renderDrawer();
+  const d = $('#drawer'); d.hidden = false; void d.offsetWidth; d.classList.add('open');
+  history.pushState({ sec: curSec, drawer: 1 }, ''); drawerOpen = true;
+}
+function hideDrawerUI() {
+  drawerOpen = false; $('#drawer').classList.remove('open');
+  setTimeout(() => { if (!drawerOpen) $('#drawer').hidden = true; }, 280);
+}
+function closeDrawer(fromPop) {
+  if (!drawerOpen) return;
+  hideDrawerUI();
+  if (!fromPop) history.back();
+}
+function pickSection(id) {
+  if (!drawerOpen) return go(id);
+  if (id === curSec) return closeDrawer();
+  // reuse the drawer's history entry, so Back from the new section returns to the previous one
+  hideDrawerUI();
+  history.replaceState({ sec: id }, '');
+  showSection(id);
+}
+
 /* ---------- auto-update ---------- */
 // version.json on the server holds the newest version number (and a short note).
 // When it is newer than APP_VERSION the app fetches the new files and reloads itself.
@@ -1008,6 +1134,10 @@ const acts = {
   close: () => { hideSheet(); setTimeout(() => applyUpdate(), 350); },
   closepage: () => { hidePage(); setTimeout(() => applyUpdate(), 350); },
   deleted: () => openDeleted(),
+  menu: () => openDrawer(),
+  closedrawer: () => closeDrawer(),
+  pick: a => pickSection(a.dataset.sec),
+  go: a => go(a.dataset.sec),
   restore: a => restoreDeleted(a.dataset.key),
   cleardeleted: () => { deleted = []; saveDeleted(); openDeleted(); toast('History cleared'); },
   checkupdate: () => checkForUpdate(true),
@@ -1048,8 +1178,10 @@ function init() {
   // Android "Share to…" → text from other apps lands in the search box
   const shared = (params.get('text') || params.get('title') || '').replace(/https?:\/\/\S+/g, '').replace(/[“”"]/g, '').trim().slice(0, 80);
   const wantAdd = params.get('add') || shared;
-  if (location.search) history.replaceState(null, '', location.pathname);
-  renderList();
+  // Fresh launch opens the home page; a reload (e.g. after an update) stays where you were.
+  const startSec = wantAdd ? 'watchlist' : ((history.state && history.state.sec) || 'home');
+  history.replaceState({ sec: startSec }, '', location.pathname);
+  showSection(startSec);
   if (wantAdd) openAdd({ q: shared });
   refreshStale();
   announceUpdate();
