@@ -180,6 +180,8 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const IMG = 'https://image.tmdb.org/t/p/';
 const API = 'https://api.themoviedb.org/3';
+// Bump this together with version.json on every change – installed apps compare the two and update themselves.
+const APP_VERSION = 2;
 
 /* ---------- storage ---------- */
 const LS = {
@@ -655,6 +657,9 @@ function openSettings() {
     <div class="dsec"><h4>Your data</h4>
       <div class="note" style="font-size:14px;margin-bottom:10px">Your list is stored on this phone only. Export a backup before clearing browser data or switching phones.</div>
       <div class="actions" style="margin-top:0"><button class="btn" data-act="export">Export backup</button><button class="btn" data-act="import">Import backup</button></div></div>
+    <div class="dsec"><h4>App version</h4>
+      <div class="note" style="font-size:14px;margin-bottom:10px">Version ${APP_VERSION}. The app updates itself automatically whenever a new version is published.</div>
+      <button class="btn" data-act="checkupdate">Check for updates now</button></div>
     ${standalone() ? '' : `<div class="dsec"><h4>Install</h4>
       ${deferredInstall ? `<button class="btn pri" data-act="install">Add to home screen</button>`
         : `<div class="note" style="font-size:14px">Samsung Internet: menu ▸ <b>Add page to</b> ▸ <b>Home screen</b>.<br>Chrome: ⋮ ▸ <b>Install app</b>.</div>`}</div>`}
@@ -742,6 +747,50 @@ async function refreshStale() {
   refreshing = false;
 }
 
+/* ---------- auto-update ---------- */
+// version.json on the server holds the newest version number (and a short note).
+// When it is newer than APP_VERSION the app fetches the new files and reloads itself.
+let pendingUpdate = null, updating = false;
+async function checkForUpdate(manual) {
+  if (updating || !navigator.onLine) { if (manual) toast('You’re offline – try again when connected'); return; }
+  let remote;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw 0;
+    remote = await r.json();
+  } catch { if (manual) toast('Couldn’t check for updates right now'); return; }
+  if (!remote || !(+remote.v > APP_VERSION)) { if (manual) toast('You have the latest version'); return; }
+  pendingUpdate = remote;
+  applyUpdate(manual);
+}
+async function applyUpdate(force) {
+  if (!pendingUpdate || updating) return;
+  // Don’t yank the screen away while something is open – wait until the sheet is closed or the app is in the background.
+  if (!force && sheetOpen && document.visibilityState === 'visible') return;
+  updating = true;
+  try {
+    const reg = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    // Refresh the cached page so the reload (and later offline launches) get the new version.
+    const res = await fetch('./index.html', { cache: 'reload' });
+    if (res.ok && 'caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k.startsWith('watchlist-v')).map(k => caches.open(k).then(c => Promise.all([c.put('./index.html', res.clone()), c.put('./', res.clone())]))));
+    }
+  } catch {}
+  try { sessionStorage.setItem('ws.updated', JSON.stringify(pendingUpdate)); } catch {}
+  location.reload();
+}
+function announceUpdate() {
+  let u; try { u = JSON.parse(sessionStorage.getItem('ws.updated') || 'null'); sessionStorage.removeItem('ws.updated'); } catch {}
+  if (u) setTimeout(() => toast(u.note ? 'Updated: ' + u.note : 'App updated to version ' + u.v), 400);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForUpdate();
+  else applyUpdate(); // app went to the background – safe moment to update
+});
+setInterval(() => { if (document.visibilityState === 'visible') checkForUpdate(); }, 5 * 60 * 1000);
+
 /* ---------- events ---------- */
 const acts = {
   addopen: () => openAdd(),
@@ -749,7 +798,8 @@ const acts = {
   keysetup: () => openSettings(),
   backadd: () => openAdd({ back: true }),
   settings: () => openSettings(),
-  close: () => hideSheet(),
+  close: () => { hideSheet(); setTimeout(() => applyUpdate(), 350); },
+  checkupdate: () => checkForUpdate(true),
   clearq: () => { const q = $('#q'); q.value = ''; onQ(); q.focus(); },
   seg: a => { view.seg = a.dataset.v; saveView(); renderList(); },
   more: () => { if (!loading) runSearch(true); },
@@ -791,9 +841,11 @@ function init() {
   renderList();
   if (wantAdd) openAdd({ q: shared });
   refreshStale();
+  announceUpdate();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
   }
+  setTimeout(checkForUpdate, 1500);
 }
 init();
 })();

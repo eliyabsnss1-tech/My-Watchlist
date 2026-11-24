@@ -1,4 +1,4 @@
-const V = 'watchlist-v7';
+const V = 'watchlist-v8';
 const IMG = 'watchlist-img-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
@@ -46,10 +46,14 @@ self.addEventListener('fetch', e => {
 
   if (url.origin !== location.origin) return; // API calls go straight to the network
 
-  // App shell: network first, fall back to cache when offline
+  // Version check must always hit the server
+  if (url.pathname.endsWith('/version.json')) return;
+
+  // App shell: network first (skipping the browser's HTTP cache), fall back to cache when offline
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => {
+        if (!res.ok) return caches.match('./index.html').then(hit => hit || res);
         const copy = res.clone();
         caches.open(V).then(c => c.put('./index.html', copy));
         return res;
