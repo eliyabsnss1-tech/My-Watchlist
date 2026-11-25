@@ -11,6 +11,11 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
+  /* Material 3 motion tokens (Android's standard easing curves) */
+  --ease-std:cubic-bezier(.2,0,0,1);        /* standard: on-screen moves */
+  --ease-std-dec:cubic-bezier(0,0,0,1);     /* standard decelerate: continue a finger's motion */
+  --ease-emph-dec:cubic-bezier(.05,.7,.1,1);/* emphasized decelerate: things arriving / snapping into place */
+  --ease-emph-acc:cubic-bezier(.3,0,.8,.15);/* emphasized accelerate: things leaving the screen */
   --bg:#0e0f13;--surf:#1a1c23;--surf2:#262935;--text:#f2f3f7;--mut:#9a9fb0;
   --acc:#8aa4ff;--acc-t:#0b1020;--ok:#4cd694;--danger:#ff7b7b;--star:#ffc857;--line:rgba(255,255,255,.08);
 }
@@ -94,10 +99,10 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 .sheet{position:fixed;inset:0;z-index:50}
 .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .25s}
 .panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:640px;max-height:93dvh;overflow-y:auto;overscroll-behavior:contain;
-  background:var(--bg);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  background:var(--bg);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform .2s var(--ease-emph-acc);
   padding:10px 18px calc(24px + env(safe-area-inset-bottom))}
 .sheet.open .scrim{opacity:1}
-.sheet.open .panel{transform:none}
+.sheet.open .panel{transform:none;transition:transform .4s var(--ease-emph-dec)}
 .grab{width:42px;height:5px;border-radius:3px;background:var(--surf2);margin:0 auto 14px}
 .dhead{display:flex;gap:14px}
 .dhead .poster{width:112px;height:168px;border-radius:16px}
@@ -130,13 +135,34 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
   background:var(--text);color:var(--bg);padding:11px 18px;border-radius:22px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;
   transition:.25s;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+/* undo bar (Material 3 snackbar) */
+#snack{position:fixed;left:12px;right:12px;bottom:calc(94px + env(safe-area-inset-bottom));z-index:91;max-width:560px;margin:0 auto;
+  display:flex;align-items:center;gap:12px;padding:6px 6px 6px 14px;min-height:56px;border-radius:16px;overflow:hidden;
+  background:#eceef6;color:#15171d;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .15s linear,transform .2s var(--ease-emph-acc)}
+#snack.show{opacity:1;transform:none;pointer-events:auto;transition:opacity .15s linear,transform .4s var(--ease-emph-dec)}
+#snack .si{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--sc);color:#0b0d12}
+#snack .si svg{width:18px;height:18px}
+#snack .st{flex:1;min-width:0;font-size:14px;line-height:1.3}
+#snack .st b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#snack .sbtn{flex:none;height:44px;padding:0 16px 0 12px;border-radius:22px;display:flex;align-items:center;gap:6px;
+  background:#2f45c9;color:#fff;font-weight:700;font-size:15px}
+#snack .sbtn svg{width:18px;height:18px}
+#snack .sbar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:#2f45c9;opacity:.5;transform-origin:left;animation:sbar var(--st,5s) linear forwards}
+@keyframes sbar{to{transform:scaleX(0)}}
 .row{align-items:flex-start}
 .row .poster{width:52px;height:78px;border-radius:10px}
-#listBody .row{padding:8px;gap:10px}
-#listBody .row .t{font-size:16px;-webkit-line-clamp:1}
-#listBody .row .m{font-size:12.5px;margin-top:2px}
-#listBody .logos{margin-top:4px}
+/* every list row is exactly the same size: fixed height, each line is one line and trims with … */
+#listBody .row{padding:8px;gap:10px;height:94px;align-items:center;overflow:hidden}
+#listBody .row .info{height:78px;display:flex;flex-direction:column;justify-content:center}
+#listBody .row .t,#listBody .row .m,#listBody .logos{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;flex:none}
+#listBody .row .t{font-size:16px;line-height:20px}
+#listBody .row .m{font-size:12.5px;line-height:17px;margin-top:1px}
+#listBody .logos{margin-top:4px;height:20px;line-height:20px}
+#listBody .logos .plogo{vertical-align:middle;margin-right:4px}
+#listBody .logos .note{vertical-align:middle}
 #listBody .plogo{width:20px;height:20px;border-radius:6px}
+#listBody .poster{flex:none}
 #listBody .row .round{width:40px;height:40px}
 .row .t{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:17px;line-height:1.25}
 .row .m{margin-top:3px}
@@ -157,7 +183,8 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 /* swipe to mark watched / not watched */
 .swipe{position:relative;margin:0 12px 8px;border-radius:20px;overflow:hidden}
 .swipe .row{margin:0;touch-action:pan-y;will-change:transform}
-.swipe .row.anim{transition:transform .15s cubic-bezier(.2,.8,.2,1)}
+.swipe .row.anim{transition:transform .3s var(--ease-emph-dec)} /* snap back */
+.swipe .row.fly{transition:transform var(--fly,.18s) var(--ease-std-dec)} /* thrown off-screen at finger speed */
 .swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;
   font-weight:700;font-size:15px;opacity:0;transition:opacity .1s}
 .swipe-bg span{display:flex;align-items:center;gap:8px}
@@ -169,8 +196,8 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 
 /* full-screen pages (Settings) */
 .page{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;
-  transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}
-.page.open{transform:none}
+  transform:translateX(100%);transition:transform .2s var(--ease-emph-acc)}
+.page.open{transform:none;transition:transform .4s var(--ease-emph-dec)}
 .page-in{max-width:640px;margin:0 auto;padding:0 18px calc(30px + env(safe-area-inset-bottom))}
 .pagehead{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:center;gap:8px;
   padding:calc(12px + env(safe-area-inset-top)) 0 10px;margin:0 -4px}
@@ -205,8 +232,8 @@ header .iconbtn{width:42px;height:42px}
 .drawer .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .25s}
 .drawer.open .scrim{opacity:1}
 .dpanel{position:absolute;top:0;bottom:0;left:0;width:min(300px,82vw);background:var(--surf);border-radius:0 26px 26px 0;overflow-y:auto;
-  transform:translateX(-100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);padding:calc(18px + env(safe-area-inset-top)) 12px 24px}
-.drawer.open .dpanel{transform:none}
+  transform:translateX(-100%);transition:transform .2s var(--ease-emph-acc);padding:calc(18px + env(safe-area-inset-top)) 12px 24px}
+.drawer.open .dpanel{transform:none;transition:transform .4s var(--ease-emph-dec)}
 .dpanel h2{margin:4px 12px 14px;font-size:22px}
 .dlabel{font-size:12px;text-transform:uppercase;color:var(--mut);letter-spacing:.6px;margin:14px 14px 6px}
 .ditem{display:flex;align-items:center;gap:14px;width:100%;height:54px;padding:0 12px;border-radius:16px;font-size:16px;font-weight:600;text-align:left}
@@ -252,6 +279,7 @@ header .iconbtn{width:42px;height:42px}
 <div class="sheet" id="sheet" hidden><div class="scrim" data-act="close"></div><div class="panel" id="panel"></div></div>
 <div class="page" id="page" hidden></div>
 <div id="toast" role="status"></div>
+<div id="snack" role="status" aria-live="polite"></div>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
 <script>
@@ -262,7 +290,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const IMG = 'https://image.tmdb.org/t/p/';
 const API = 'https://api.themoviedb.org/3';
 // Bump this together with version.json on every change – installed apps compare the two and update themselves.
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 
 /* ---------- storage ---------- */
 const LS = {
@@ -311,6 +339,7 @@ function fmtDate(d) {
 }
 let toastT;
 function toast(msg) {
+  hideSnack();
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
@@ -527,7 +556,7 @@ function cardHTML(it) {
     ${posterHTML(it, 'w185', 'poster')}
     <div class="info"><div class="t">${esc(it.title)}</div>
       <div class="m">${esc(l1)}${isFuture(it.date) ? '<span class="tag">Upcoming</span>' : ''}</div>
-      ${l2 ? `<div class="m">${esc(l2)}</div>` : ''}${whereLine(it)}</div>
+      <div class="m">${l2 ? esc(l2) : '&nbsp;'}</div>${whereLine(it)}</div>
     <button class="round ${it.watched ? 'on' : ''}" data-act="toggle" data-key="${it.key}" aria-label="${it.watched ? 'Mark as not watched' : 'Mark as watched'}">${I.check}</button>
   </div></div>`;
 }
@@ -591,7 +620,7 @@ function removeItem(key) {
   const [gone] = list.splice(i, 1); persist();
   deleted = [Object.assign({}, gone, { deletedAt: Date.now() })].concat(deleted.filter(x => x.key !== gone.key)).slice(0, DELETED_MAX);
   saveDeleted(); renderList(); renderSearch();
-  toastUndo('Deleted – tap to undo', () => restoreDeleted(gone.key, true));
+  undoSnack('deleted', gone.title, () => { restoreDeleted(gone.key, true); toast('Restored'); });
 }
 function restoreDeleted(key, quiet) {
   const d = deleted.find(x => x.key === key); if (!d) return;
@@ -606,11 +635,25 @@ function toggleWatched(key) {
   renderList(); if (sheetOpen && current && current.key === key) renderSheet();
 }
 
-function toastUndo(msg, undo) {
-  const t = $('#toast');
-  toast(msg); t.style.pointerEvents = 'auto';
-  t.onclick = () => { undo(); t.onclick = null; t.style.pointerEvents = ''; t.classList.remove('show'); };
-  setTimeout(() => { t.style.pointerEvents = ''; t.onclick = null; }, 2300);
+/* undo bar: says what just happened to which title, with a clear Undo button and a 5-second timer line */
+const SNACK_MS = 5000;
+let snackT;
+function hideSnack() { clearTimeout(snackT); const s = $('#snack'); if (s) s.classList.remove('show'); }
+function undoSnack(kind, title, undo) {
+  const K = {
+    deleted: { icon: I.trash, color: 'var(--danger)', what: 'Deleted' },
+    watched: { icon: I.check, color: 'var(--ok)', what: 'Moved to Watched' },
+    unwatched: { icon: I.undo, color: 'var(--acc)', what: 'Moved back to To watch' }
+  }[kind];
+  const s = $('#snack');
+  $('#toast').classList.remove('show');
+  s.innerHTML = `<span class="si" style="--sc:${K.color}">${K.icon}</span>
+    <span class="st"><b>${esc(title)}</b>${K.what}</span>
+    <button class="sbtn" aria-label="Undo: ${esc(K.what)} ${esc(title)}">${I.undo}Undo</button>
+    <i class="sbar" style="--st:${SNACK_MS}ms"></i>`;
+  s.querySelector('.sbtn').onclick = () => { hideSnack(); undo(); buzz(); };
+  s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
+  clearTimeout(snackT); snackT = setTimeout(hideSnack, SNACK_MS);
 }
 
 /* ---------- swipe rows ----------
@@ -624,8 +667,16 @@ listEl.addEventListener('pointerdown', e => {
   const wrap = e.target.closest('.swipe');
   if (!wrap || wrap.classList.contains('gone')) return;
   sw = { wrap, row: $('.row', wrap), key: wrap.dataset.swipe,
-    x0: e.clientX, y0: e.clientY, id: e.pointerId, lock: false, armed: false, dx: 0 };
+    x0: e.clientX, y0: e.clientY, id: e.pointerId, lock: false, armed: false, dx: 0, pts: [] };
 });
+// finger speed in px/ms over the last ~100 ms
+function swipeVelocity(s) {
+  const now = performance.now(), pts = s.pts.filter(p => now - p.t < 100);
+  if (pts.length < 2) return 0;
+  const a = pts[0], b = pts[pts.length - 1];
+  return (b.x - a.x) / Math.max(1, b.t - a.t);
+}
+const FLING_V = 0.5; // ≈ 500 px/s, a deliberate flick (Android uses a similar "escape velocity")
 listEl.addEventListener('pointermove', e => {
   if (!sw || e.pointerId !== sw.id) return;
   const dx = e.clientX - sw.x0, dy = e.clientY - sw.y0;
@@ -636,8 +687,9 @@ listEl.addEventListener('pointermove', e => {
     try { sw.row.setPointerCapture(e.pointerId); } catch {}
   }
   sw.dx = dx;
+  sw.pts.push({ x: dx, t: performance.now() }); if (sw.pts.length > 12) sw.pts.shift();
   sw.wrap.dataset.dir = dx >= 0 ? 'r' : 'l';
-  sw.row.style.transform = `translateX(${dx}px)`;
+  sw.row.style.transform = `translateX(${dx}px)`; // 1:1 with the finger, like Android's swipe-to-dismiss
   const armed = Math.abs(dx) > swipeLimit(sw.wrap);
   if (armed !== sw.armed) { sw.armed = armed; sw.wrap.classList.toggle('armed', armed); if (armed) buzz(); }
 });
@@ -646,27 +698,34 @@ function endSwipe(e) {
   const s = sw; sw = null;
   if (!s.lock) return; // a normal tap
   swipeEnded = Date.now();
-  s.row.classList.add('anim');
-  if (!(s.armed && e.type === 'pointerup')) {
+  const v = swipeVelocity(s);
+  // commit when dragged past the line, or flicked fast enough in the same direction it was dragged
+  const flung = Math.abs(v) > FLING_V && Math.abs(s.dx) > 30 && Math.sign(v) === Math.sign(s.dx);
+  if (!((s.armed || flung) && e.type === 'pointerup')) {
+    s.row.classList.add('anim'); // snap back: emphasized-decelerate
     s.row.style.transform = '';
-    setTimeout(() => s.wrap.classList.remove('dragging', 'armed'), 150);
+    setTimeout(() => s.wrap.classList.remove('dragging', 'armed'), 300);
     return;
   }
   const right = s.dx > 0, it = list.find(x => x.key === s.key);
   if (!it) return;
   const isDelete = it.watched ? right : !right;
-  s.wrap.classList.add('gone');
+  // fly off at (at least) the finger's speed, so the motion continues instead of restarting
+  const left = s.wrap.offsetWidth + 20 - Math.abs(s.dx);
+  const fly = Math.round(Math.min(220, Math.max(110, left / Math.max(Math.abs(v), 1.5))));
+  s.wrap.classList.add('gone'); s.row.classList.add('fly'); s.row.style.setProperty('--fly', fly + 'ms');
   s.row.style.transform = `translateX(${(right ? 1 : -1) * (s.wrap.offsetWidth + 20)}px)`;
   setTimeout(() => {
-    s.wrap.style.transition = 'height .14s, margin .14s';
+    // then the gap closes with the standard curve
+    s.wrap.style.transition = 'height .2s var(--ease-std), margin .2s var(--ease-std)';
     s.wrap.style.height = s.wrap.offsetHeight + 'px'; void s.wrap.offsetHeight;
     s.wrap.style.height = '0px'; s.wrap.style.marginBottom = '0px';
     setTimeout(() => {
       if (isDelete) { removeItem(s.key); return; }
       toggleWatched(s.key);
-      toastUndo(right ? 'Moved to Watched – tap to undo' : 'Moved back to To watch – tap to undo', () => toggleWatched(s.key));
-    }, 140);
-  }, 130);
+      undoSnack(right ? 'watched' : 'unwatched', it.title, () => toggleWatched(s.key));
+    }, 200);
+  }, fly);
 }
 listEl.addEventListener('pointerup', endSwipe);
 listEl.addEventListener('pointercancel', endSwipe);
