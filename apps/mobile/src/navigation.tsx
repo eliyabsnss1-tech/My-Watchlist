@@ -67,6 +67,7 @@ const Drawer = createDrawerNavigator({
   screenOptions: {
     headerShown: false,
     drawerType: "front",
+    drawerPosition: "left",
     overlayColor: colors.scrim,
     swipeEdgeWidth: 36,
     drawerStyle: {
@@ -99,5 +100,12 @@ const theme: Theme = {
 const Navigation = createStaticNavigation(Drawer);
 
 export function AppNavigation() {
-  return <Navigation theme={theme} linking={{ enabled: "auto", prefixes: ["myapps://"] }} />;
+  // The app is laid out left-to-right; without this the drawer follows the phone's language direction.
+  return (
+    <Navigation
+      theme={theme}
+      direction="ltr"
+      linking={{ enabled: "auto", prefixes: ["myapps://"] }}
+    />
+  );
 }
