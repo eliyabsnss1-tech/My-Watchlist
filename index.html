@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>My Watchlist</title>
-<meta name="theme-color" content="#0e0f13">
+<meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -16,7 +16,7 @@
   --ease-std-dec:cubic-bezier(0,0,0,1);     /* standard decelerate: continue a finger's motion */
   --ease-emph-dec:cubic-bezier(.05,.7,.1,1);/* emphasized decelerate: things arriving / snapping into place */
   --ease-emph-acc:cubic-bezier(.3,0,.8,.15);/* emphasized accelerate: things leaving the screen */
-  --bg:#0e0f13;--surf:#1a1c23;--surf2:#262935;--text:#f2f3f7;--mut:#9a9fb0;
+  --bg:#000000;--surf:#111216;--surf2:#1d1f26;--text:#f2f3f7;--mut:#9a9fb0;
   --acc:#8aa4ff;--acc-t:#0b1020;--ok:#4cd694;--danger:#ff7b7b;--star:#ffc857;--line:rgba(255,255,255,.08);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -92,17 +92,18 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 .fab svg{width:30px;height:30px;stroke-width:2.5}
 .fab:active{transform:scale(.94)}
 .panel.tall{height:93dvh}
-.addhead{position:sticky;top:-10px;z-index:3;background:var(--bg);margin:-10px -18px 0;padding-top:10px}
+.addhead{position:sticky;top:-10px;z-index:3;background:var(--surf);margin:-10px -18px 0;padding-top:10px}
 .panel #results{margin:0 -18px}
 .back{height:40px;padding:0 14px 0 6px;margin:0 0 10px -6px;color:var(--acc);font-weight:600;font-size:15px}
 
 .sheet{position:fixed;inset:0;z-index:50}
-.scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .25s}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.72);opacity:0;transition:opacity .3s var(--ease-std)}
 .panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:640px;max-height:93dvh;overflow-y:auto;overscroll-behavior:contain;
-  background:var(--bg);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform .2s var(--ease-emph-acc);
+  background:var(--surf);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform .25s var(--ease-emph-acc);
+  will-change:transform;backface-visibility:hidden;contain:layout paint;
   padding:10px 18px calc(24px + env(safe-area-inset-bottom))}
 .sheet.open .scrim{opacity:1}
-.sheet.open .panel{transform:none;transition:transform .4s var(--ease-emph-dec)}
+.sheet.open .panel{transform:none;transition:transform .5s var(--ease-emph-dec)}
 .grab{width:42px;height:5px;border-radius:3px;background:var(--surf2);margin:0 auto 14px}
 .dhead{display:flex;gap:14px}
 .dhead .poster{width:112px;height:168px;border-radius:16px}
@@ -182,7 +183,8 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 .facts dd.big{font-weight:700;color:var(--acc)}
 /* swipe to mark watched / not watched */
 .swipe{position:relative;margin:0 12px 8px;border-radius:20px;overflow:hidden}
-.swipe .row{margin:0;touch-action:pan-y;will-change:transform}
+.swipe .row{margin:0;touch-action:pan-y;will-change:transform;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.swipe img{pointer-events:none;-webkit-user-drag:none}
 .swipe .row.anim{transition:transform .3s var(--ease-emph-dec)} /* snap back */
 .swipe .row.fly{transition:transform var(--fly,.18s) var(--ease-std-dec)} /* thrown off-screen at finger speed */
 .swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;
@@ -206,6 +208,10 @@ h2.sec{font-size:15px;font-weight:600;color:var(--mut);margin:10px 18px 8px;text
 
 /* drag-down-to-close sheets */
 .panel.dragging{transition:none}
+.panel.flingout{transition:transform var(--out,.25s) var(--ease-std-dec)!important}
+.panel .card,.panel .drow,.panel .row,.panel .pill,.panel .prov .p,.panel .search input{background:var(--surf2)}
+.panel .stile,.panel .field,.panel .round{background:#2a2d36}
+.panel .round.add{background:var(--acc)}
 .panel .grab{width:56px;height:5px;margin-top:2px;margin-bottom:14px;position:relative}
 .panel .grab::after{content:"";position:absolute;inset:-14px -40px}
 
@@ -244,6 +250,13 @@ header .iconbtn{width:42px;height:42px}
 .fbar{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;flex:none}
 .fbar h1{margin:0;font-size:21px;font-weight:700}
 .fview iframe{flex:1;width:100%;border:0;display:block}
+/* movie series grouped into one row */
+.grp .poster{box-shadow:5px -4px 0 -1px var(--surf2),10px -8px 0 -2px #2a2d36}
+.grp .cnt{position:absolute;left:6px;bottom:6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--acc);color:var(--acc-t);font-size:12px;font-weight:700;display:grid;place-items:center}
+.grp .chev{transition:transform .3s var(--ease-std)}
+.grp.open .chev{transform:rotate(180deg)}
+.gkids{margin:-2px 0 8px 18px;border-left:2px solid var(--surf2);padding-left:0}
+.gkids .swipe{margin-left:8px}
 </style>
 </head>
 <body>
@@ -290,7 +303,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const IMG = 'https://image.tmdb.org/t/p/';
 const API = 'https://api.themoviedb.org/3';
 // Bump this together with version.json on every change – installed apps compare the two and update themselves.
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 
 /* ---------- storage ---------- */
 const LS = {
@@ -391,7 +404,11 @@ function fromDetails(d, type) {
     genres: (d.genres || []).map(g => g.name), tagline: d.tagline || '', trailer,
     status: d.status || '', prov: provSnapshot(d), refreshed: Date.now()
   };
-  if (type === 'movie') o.runtime = d.runtime || 0;
+  if (type === 'movie') {
+    o.runtime = d.runtime || 0;
+    const c = d.belongs_to_collection;
+    o.coll = c ? { id: c.id, name: c.name || '' } : null;
+  }
   else {
     o.runtime = (d.episode_run_time && d.episode_run_time[0]) || (d.last_episode_to_air && d.last_episode_to_air.runtime) || 0;
     o.seasons = d.number_of_seasons || 0; o.episodes = d.number_of_episodes || 0;
@@ -557,7 +574,7 @@ function cardHTML(it) {
     <div class="info"><div class="t">${esc(it.title)}</div>
       <div class="m">${esc(l1)}${isFuture(it.date) ? '<span class="tag">Upcoming</span>' : ''}</div>
       <div class="m">${l2 ? esc(l2) : '&nbsp;'}</div>${whereLine(it)}</div>
-    <button class="round ${it.watched ? 'on' : ''}" data-act="toggle" data-key="${it.key}" aria-label="${it.watched ? 'Mark as not watched' : 'Mark as watched'}">${I.check}</button>
+    ${it.watched ? '' : `<button class="round" data-act="toggle" data-key="${it.key}" aria-label="Mark as watched">${I.check}</button>`}
   </div></div>`;
 }
 function keyCardHTML() {
@@ -582,6 +599,7 @@ const SORTS = {
   title: (a, b) => a.title.localeCompare(b.title)
 };
 function renderList() {
+  if ((sw && sw.lock) || swipeBusy) { listDirty = true; return; }
   const todo = list.filter(x => !x.watched).length, done = list.length - todo;
   $('#lSeg').hidden = !list.length;
   $('#lSeg').innerHTML = [['todo', 'To watch', todo], ['done', 'Watched', done]]
@@ -595,8 +613,71 @@ function renderList() {
     body = list.length
       ? `<div class="empty">${I.film}<div>${view.seg === 'todo' ? 'Everything is watched. Nice!' : 'Nothing watched yet.'}</div></div>`
       : `<div class="empty">${I.mark}<div><b>Your watchlist is empty</b><br>Tap the <b>+</b> button to add a movie or show.</div></div>`;
-  } else body = items.map(cardHTML).join('');
+  } else body = groupItems(items).map(g => g.length > 1 ? groupHTML(g) : cardHTML(g[0])).join('');
   $('#listBody').innerHTML = (settings.key ? '' : keyCardHTML()) + body;
+}
+
+/* movies from the same series (e.g. a trilogy) share one row that opens to show them */
+const openGroups = new Set();
+const ROMAN = { ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10 };
+function seriesBase(title) {
+  let t = String(title || '').toLowerCase().replace(/\s*\(\d{4}\)\s*$/, '');
+  t = t.split(/\s*[:–—]\s*|\s+-\s+/)[0];
+  t = t.replace(/[^\p{L}\p{N}\s&']/gu, ' ').replace(/\s+/g, ' ').trim();
+  t = t.replace(/\s+(part|chapter|vol|volume|episode)\s+\S+$/, '').replace(/\s+(\d{1,2}|ii|iii|iv|v|vi|vii|viii|ix|x)$/, '').trim();
+  return t.replace(/^the /, '');
+}
+function groupItems(items) {
+  const movies = items.filter(x => x.type === 'movie');
+  const keyOf = new Map();
+  // 1) TMDB tells us the series directly
+  for (const m of movies) if (m.coll && m.coll.id) keyOf.set(m, 'c' + m.coll.id);
+  // 2) otherwise match by name: "Frozen" + "Frozen II", "The Matrix" + "The Matrix Reloaded"
+  //    (a name that matches a title already in a TMDB series joins that series)
+  const collOf = new Map();
+  for (const m of movies) if (keyOf.has(m)) { const b = seriesBase(m.title); if (b.length >= 3 && !collOf.has(b)) collOf.set(b, keyOf.get(m)); }
+  const rest = movies.filter(m => !keyOf.has(m)).map(m => ({ m, b: seriesBase(m.title) })).filter(x => x.b.length >= 3);
+  const bases = [...new Set(rest.map(x => x.b).concat([...collOf.keys()]))].sort((a, b) => a.length - b.length);
+  const prefixOk = b => b.includes(' ') || b.length >= 5; // "matrix" → "matrix reloaded", but not "up" → "up in the air"
+  for (const x of rest) {
+    const root = bases.find(b => b === x.b || (prefixOk(b) && x.b.startsWith(b + ' ')));
+    keyOf.set(x.m, collOf.get(root) || 'n' + root);
+  }
+  const byKey = new Map();
+  for (const it of items) {
+    const k = keyOf.get(it);
+    if (!k) { byKey.set(it.key, [it]); continue; }
+    if (!byKey.has(k)) byKey.set(k, []);
+    byKey.get(k).push(it);
+  }
+  const out = [];
+  for (const g of byKey.values()) {
+    if (g.length > 1) g.sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
+    out.push(g);
+  }
+  // keep the list's sort order: a series sits where its first title would be
+  const pos = new Map(items.map((x, i) => [x, i]));
+  out.sort((a, b) => Math.min(...a.map(x => pos.get(x))) - Math.min(...b.map(x => pos.get(x))));
+  return out;
+}
+function seriesName(g) {
+  const c = g.find(x => x.coll && x.coll.name);
+  if (c) return c.coll.name.replace(/\s+collection$/i, '') + ' series';
+  const t = g.map(x => x.title).sort((a, b) => a.length - b.length)[0];
+  return t.split(/\s*[:–—]\s*|\s+-\s+/)[0].replace(/\s+(\d{1,2}|II|III|IV|V|VI)$/,'') + ' series';
+}
+function groupHTML(g) {
+  const id = 'g-' + g.map(x => x.key).sort().join('|');
+  const open = openGroups.has(id), mins = g.reduce((s, x) => s + (x.runtime || 0), 0);
+  const yrs = [...new Set(g.map(x => year(x.date)).filter(Boolean))];
+  const l1 = [`${g.length} movies`, yrs.length > 1 ? `${yrs[0]}–${yrs[yrs.length - 1]}` : yrs[0], fmtRuntime(mins)].filter(Boolean).join(' · ');
+  const l2 = g.map(x => x.title).join(' · ');
+  return `<div class="row grp ${open ? 'open' : ''} ${g.every(x => x.watched) ? 'watched' : ''}" data-act="grp" data-g="${esc(id)}" style="margin:0 12px 8px">
+      <div style="position:relative;flex:none">${posterHTML(g[0], 'w185', 'poster')}<span class="cnt">${g.length}</span></div>
+      <div class="info"><div class="t">${esc(seriesName(g))}</div><div class="m">${esc(l1)}</div><div class="m">${esc(l2)}</div>
+        <div class="logos"><span class="note" style="opacity:.7">${open ? 'Tap to close' : 'Tap to see all ' + g.length}</span></div></div>
+      <div class="round chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>${open ? `<div class="gkids">${g.map(cardHTML).join('')}</div>` : ''}`;
 }
 
 /* ---------- list actions ---------- */
@@ -659,16 +740,9 @@ function undoSnack(kind, title, undo) {
 /* ---------- swipe rows ----------
    To watch tab: right = mark watched, left = delete.
    Watched tab:  left = back to To watch, right = delete. */
-let sw = null, swipeEnded = 0;
+let sw = null, swipeEnded = 0, swipeBusy = false, listDirty = false;
 const swipeLimit = w => Math.min(110, w.offsetWidth * 0.28);
 const listEl = $('#listBody');
-listEl.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  const wrap = e.target.closest('.swipe');
-  if (!wrap || wrap.classList.contains('gone')) return;
-  sw = { wrap, row: $('.row', wrap), key: wrap.dataset.swipe,
-    x0: e.clientX, y0: e.clientY, id: e.pointerId, lock: false, armed: false, dx: 0, pts: [] };
-});
 // finger speed in px/ms over the last ~100 ms
 function swipeVelocity(s) {
   const now = performance.now(), pts = s.pts.filter(p => now - p.t < 100);
@@ -677,58 +751,78 @@ function swipeVelocity(s) {
   return (b.x - a.x) / Math.max(1, b.t - a.t);
 }
 const FLING_V = 0.5; // ≈ 500 px/s, a deliberate flick (Android uses a similar "escape velocity")
-listEl.addEventListener('pointermove', e => {
-  if (!sw || e.pointerId !== sw.id) return;
-  const dx = e.clientX - sw.x0, dy = e.clientY - sw.y0;
+// Touch events (not pointer events): Android browsers can cancel pointer events mid-swipe, which froze rows half-way.
+listEl.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1 || swipeBusy) { sw = null; return; }
+  const wrap = e.target.closest('.swipe');
+  if (!wrap || wrap.classList.contains('gone')) { sw = null; return; }
+  const t = e.touches[0];
+  sw = { wrap, row: $('.row', wrap), key: wrap.dataset.swipe, x0: t.clientX, y0: t.clientY, lock: false, armed: false, dx: 0, pts: [] };
+}, { passive: true });
+listEl.addEventListener('touchmove', e => {
+  if (!sw) return;
+  if (e.touches.length !== 1) { cancelSwipe(); return; }
+  const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
   if (!sw.lock) {
     if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
     if (Math.abs(dx) <= Math.abs(dy) * 1.2) { sw = null; return; } // vertical: let the list scroll
+    if (!sw.row || !sw.wrap.isConnected) { sw = null; return; }
     sw.lock = true; sw.wrap.classList.add('dragging'); sw.row.classList.remove('anim');
-    try { sw.row.setPointerCapture(e.pointerId); } catch {}
+    sw.x0 = t.clientX - Math.sign(dx) * 1; // start following from here, no jump
   }
-  sw.dx = dx;
-  sw.pts.push({ x: dx, t: performance.now() }); if (sw.pts.length > 12) sw.pts.shift();
-  sw.wrap.dataset.dir = dx >= 0 ? 'r' : 'l';
-  sw.row.style.transform = `translateX(${dx}px)`; // 1:1 with the finger, like Android's swipe-to-dismiss
-  const armed = Math.abs(dx) > swipeLimit(sw.wrap);
+  if (e.cancelable) e.preventDefault();
+  const d = t.clientX - sw.x0;
+  sw.dx = d;
+  sw.pts.push({ x: d, t: performance.now() }); if (sw.pts.length > 12) sw.pts.shift();
+  sw.wrap.dataset.dir = d >= 0 ? 'r' : 'l';
+  sw.row.style.transform = `translateX(${d}px)`; // 1:1 with the finger, like Android's swipe-to-dismiss
+  const armed = Math.abs(d) > swipeLimit(sw.wrap);
   if (armed !== sw.armed) { sw.armed = armed; sw.wrap.classList.toggle('armed', armed); if (armed) buzz(); }
-});
-function endSwipe(e) {
-  if (!sw || e.pointerId !== sw.id) return;
+}, { passive: false });
+function snapBack(s) {
+  s.row.classList.add('anim'); // snap back: emphasized-decelerate
+  s.row.style.transform = '';
+  setTimeout(() => { s.wrap.classList.remove('dragging', 'armed'); flushList(); }, 300);
+}
+function cancelSwipe() { const s = sw; sw = null; if (s && s.lock) { swipeEnded = Date.now(); snapBack(s); } }
+function endSwipe() {
   const s = sw; sw = null;
-  if (!s.lock) return; // a normal tap
+  if (!s || !s.lock) return; // a normal tap
   swipeEnded = Date.now();
   const v = swipeVelocity(s);
   // commit when dragged past the line, or flicked fast enough in the same direction it was dragged
   const flung = Math.abs(v) > FLING_V && Math.abs(s.dx) > 30 && Math.sign(v) === Math.sign(s.dx);
-  if (!((s.armed || flung) && e.type === 'pointerup')) {
-    s.row.classList.add('anim'); // snap back: emphasized-decelerate
-    s.row.style.transform = '';
-    setTimeout(() => s.wrap.classList.remove('dragging', 'armed'), 300);
-    return;
-  }
-  const right = s.dx > 0, it = list.find(x => x.key === s.key);
-  if (!it) return;
+  const it = list.find(x => x.key === s.key);
+  if (!(s.armed || flung) || !it || !s.wrap.isConnected) { snapBack(s); return; }
+  const right = s.dx > 0, key = s.key, title = it.title;
   const isDelete = it.watched ? right : !right;
+  swipeBusy = true;
   // fly off at (at least) the finger's speed, so the motion continues instead of restarting
-  const left = s.wrap.offsetWidth + 20 - Math.abs(s.dx);
+  const w = s.wrap.offsetWidth, left = w + 20 - Math.abs(s.dx);
   const fly = Math.round(Math.min(220, Math.max(110, left / Math.max(Math.abs(v), 1.5))));
   s.wrap.classList.add('gone'); s.row.classList.add('fly'); s.row.style.setProperty('--fly', fly + 'ms');
-  s.row.style.transform = `translateX(${(right ? 1 : -1) * (s.wrap.offsetWidth + 20)}px)`;
+  s.row.style.transform = `translateX(${(right ? 1 : -1) * (w + 20)}px)`;
+  const finish = () => {
+    swipeBusy = false; listDirty = false;
+    try {
+      if (isDelete) { removeItem(key); return; }
+      toggleWatched(key);
+      undoSnack(right ? 'watched' : 'unwatched', title, () => toggleWatched(key));
+    } catch (err) { renderList(); }
+  };
   setTimeout(() => {
     // then the gap closes with the standard curve
+    if (!s.wrap.isConnected) return finish();
     s.wrap.style.transition = 'height .2s var(--ease-std), margin .2s var(--ease-std)';
     s.wrap.style.height = s.wrap.offsetHeight + 'px'; void s.wrap.offsetHeight;
     s.wrap.style.height = '0px'; s.wrap.style.marginBottom = '0px';
-    setTimeout(() => {
-      if (isDelete) { removeItem(s.key); return; }
-      toggleWatched(s.key);
-      undoSnack(right ? 'watched' : 'unwatched', it.title, () => toggleWatched(s.key));
-    }, 200);
+    setTimeout(finish, 200);
   }, fly);
 }
-listEl.addEventListener('pointerup', endSwipe);
-listEl.addEventListener('pointercancel', endSwipe);
+listEl.addEventListener('touchend', endSwipe);
+listEl.addEventListener('touchcancel', cancelSwipe);
+// the list must not be redrawn under a finger (background refresh); redraw once the swipe is over
+function flushList() { if (listDirty && !sw && !swipeBusy) { listDirty = false; renderList(); } }
 // a swipe shouldn't also count as a tap that opens the details
 document.addEventListener('click', e => { if (Date.now() - swipeEnded < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
 
@@ -751,42 +845,60 @@ function hideSheet(fromPop) {
   if (!fromPop) history.back();
 }
 
-/* drag the sheet down from its top to close it */
+/* drag the sheet down from anywhere on it to close it (once its content is scrolled to the top) */
 (() => {
   const p = $('#panel'), scrim = $('#sheet .scrim');
   let d = null;
-  const reset = () => { p.classList.remove('dragging'); p.style.transform = ''; scrim.style.opacity = ''; };
   p.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    const onGrab = !!e.target.closest('.grab, .back, h2');
-    // start only when the sheet is scrolled to its top (or the finger is on the handle)
-    if (p.scrollTop > 0 && !onGrab) return;
-    d = { y0: e.touches[0].clientY, x0: e.touches[0].clientX, t0: Date.now(), dy: 0, active: false };
+    if (e.touches.length !== 1 || p.classList.contains('flingout')) { d = null; return; }
+    const t = e.touches[0];
+    d = { y0: t.clientY, x0: t.clientX, dy: 0, active: false, dead: false, pts: [] };
   }, { passive: true });
   p.addEventListener('touchmove', e => {
-    if (!d) return;
-    const dy = e.touches[0].clientY - d.y0, dx = e.touches[0].clientX - d.x0;
+    if (!d || d.dead) return;
+    const t = e.touches[0];
     if (!d.active) {
-      if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
-      if (dy <= 0 || Math.abs(dx) > dy) { d = null; return; } // scrolling up or sideways
-      d.active = true; p.classList.add('dragging');
+      const dy = t.clientY - d.y0, dx = t.clientX - d.x0;
+      if (p.scrollTop > 0) { d.y0 = t.clientY; d.x0 = t.clientX; return; } // still scrolling the content: start from where it reaches the top
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { d.dead = true; return; } // sideways
+      if (dy < 0) { if (dy < -6) d.dead = true; return; } // finger goes up: normal scroll
+      // claim the gesture straight away, before the browser starts its own (overscroll) scroll
+      if (e.cancelable) e.preventDefault();
+      if (dy < 6) return;
+      d.active = true; d.y0 = t.clientY; p.classList.add('dragging');
       const a = document.activeElement; if (a && a.id === 'q') a.blur();
     }
-    e.preventDefault();
-    d.dy = Math.max(0, dy);
-    p.style.transform = `translateY(${d.dy}px)`;
+    if (e.cancelable) e.preventDefault();
+    // follow the finger 1:1; pulling up past the top just stops there
+    d.dy = Math.max(0, t.clientY - d.y0);
+    d.pts.push({ y: d.dy, t: performance.now() }); if (d.pts.length > 10) d.pts.shift();
+    p.style.transform = `translate3d(0,${d.dy}px,0)`;
     scrim.style.opacity = String(Math.max(0, 1 - d.dy / (p.offsetHeight || 1)));
   }, { passive: false });
   const end = () => {
-    if (!d) return;
     const s = d; d = null;
-    if (!s.active) return;
-    const fast = s.dy / Math.max(1, Date.now() - s.t0) > 0.6;
+    if (!s || !s.active) return;
+    const now = performance.now(), pts = s.pts.filter(q => now - q.t < 100);
+    const v = pts.length > 1 ? (pts[pts.length - 1].y - pts[0].y) / Math.max(1, pts[pts.length - 1].t - pts[0].t) : 0;
     p.classList.remove('dragging');
-    if (s.dy > Math.min(140, p.offsetHeight * 0.25) || (fast && s.dy > 40)) {
+    if (s.dy > Math.min(140, p.offsetHeight * 0.25) || (v > 0.5 && s.dy > 30)) {
+      // keep going at the finger's speed until it is off-screen, then close
+      const left = p.offsetHeight - s.dy;
+      const ms = Math.round(Math.min(320, Math.max(140, left / Math.max(v, 1.2))));
+      p.style.setProperty('--out', ms + 'ms');
+      p.classList.add('flingout');
+      scrim.style.transition = `opacity ${ms}ms linear`;
+      requestAnimationFrame(() => { p.style.transform = 'translate3d(0,100%,0)'; scrim.style.opacity = '0'; });
+      setTimeout(() => {
+        hideSheet();
+        p.classList.remove('flingout'); p.style.transform = ''; p.style.removeProperty('--out');
+        scrim.style.transition = ''; scrim.style.opacity = '';
+        setTimeout(() => applyUpdate(), 350);
+      }, ms);
+    } else {
+      // spring back up
       p.style.transform = ''; scrim.style.opacity = '';
-      hideSheet(); setTimeout(() => applyUpdate(), 350);
-    } else reset();
+    }
   };
   p.addEventListener('touchend', end);
   p.addEventListener('touchcancel', end);
@@ -1048,8 +1160,9 @@ async function refreshStale() {
     if (needsUpgrade(x)) return true;
     if (src === 'itunes') return false;
     if (src === 'tvmaze') return old(x);
+    if (settings.key && x.type === 'movie' && x.coll === undefined) return true; // learn its movie series
     return !!settings.key && (!x.prov || x.prov.region !== settings.region || old(x));
-  }).slice(0, 12);
+  }).slice(0, 20);
   try {
     for (const it of stale) {
       if (needsUpgrade(it)) await upgradeToTmdb(it); else Object.assign(it, await loadFull(it));
@@ -1202,6 +1315,7 @@ const acts = {
   checkupdate: () => checkForUpdate(true),
   clearq: () => { const q = $('#q'); q.value = ''; onQ(); q.focus(); },
   seg: a => { view.seg = a.dataset.v; saveView(); renderList(); },
+  grp: a => { const id = a.dataset.g; openGroups.has(id) ? openGroups.delete(id) : openGroups.add(id); renderList(); },
   more: () => { if (!loading) runSearch(true); },
   add: a => { const b = resultMap.get(a.dataset.key); if (b) addItem(b); },
   save: async () => { if (current) { const it = await addItem(current); current = it; renderSheet(); } },
