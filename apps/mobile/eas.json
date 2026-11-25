@@ -7,11 +7,17 @@
     "preview": {
       "distribution": "internal",
       "channel": "production",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "node": "26.13.1",
+      "pnpm": "12.23.0"
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "node": "26.13.1",
+      "pnpm": "12.23.0"
     }
   }
 }

@@ -35,7 +35,14 @@
     },
     "plugins": ["expo-sqlite", "expo-sharing", "expo-image"],
     "extra": {
-      "supportsRTL": false
+      "supportsRTL": false,
+      "eas": {
+        "projectId": "c3bb2955-0df6-4772-a520-fbecd2190fcf"
+      }
+    },
+    "owner": "eliyabsnss517",
+    "updates": {
+      "url": "https://u.expo.dev/c3bb2955-0df6-4772-a520-fbecd2190fcf"
     }
   }
 }
