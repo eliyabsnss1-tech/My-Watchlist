@@ -26,7 +26,6 @@ import { IconButton } from "../../components/ui/IconButton";
 import { Screen } from "../../components/ui/Screen";
 import { Segmented } from "../../components/ui/Segmented";
 import { SwipeRow, swipedRecently, type SwipeAction } from "../../components/ui/SwipeRow";
-import { fmtRuntime } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
 import { colors } from "../../theme";
 import * as List from "./list";
@@ -70,9 +69,6 @@ export function WatchlistScreen() {
       if (!next.delete(id)) next.add(id);
       return next;
     });
-  const minutes = items
-    .filter((x) => x.type === "movie" && !x.watched)
-    .reduce((s, x) => s + x.runtime, 0);
   // To watch: right = watched, left = delete. Watched: right = delete, left = back to To watch.
   const right = segment === "todo" ? WATCHED : DELETE;
   const left = segment === "todo" ? DELETE : UNWATCH;
@@ -189,17 +185,6 @@ export function WatchlistScreen() {
                   Add a free TMDB key to see where each title streams in your country.
                 </Text>
                 <ChevronRight size={18} color={colors.muted} />
-              </Pressable>
-            ) : null}
-            {minutes ? (
-              <Pressable
-                onPress={() => navigation.navigate("Stats")}
-                className="mx-4 mb-2 flex-row items-center gap-1"
-              >
-                <Text className="text-[14px] text-muted">
-                  {fmtRuntime(minutes)} of movies to watch
-                </Text>
-                <ChevronRight size={15} color={colors.muted} />
               </Pressable>
             ) : null}
           </View>

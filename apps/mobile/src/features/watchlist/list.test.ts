@@ -115,4 +115,19 @@ describe("watchlist list", () => {
       ],
     );
   });
+
+  it("suggests titles recommended for several saved titles first, never ones already saved", () => {
+    const c = (key: string) => title(key, { src: "tmdb" });
+    const ranked = List.rankSuggestions(
+      [
+        [c("a"), c("b"), c("saved")],
+        [c("b"), c("c")],
+      ],
+      new Set(["saved"]),
+    );
+    assert.deepStrictEqual(
+      ranked.map((x) => x.key),
+      ["b", "a", "c"],
+    );
+  });
 });

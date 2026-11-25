@@ -19,7 +19,14 @@ import { isFuture, year } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
 import { colors } from "../../theme";
 import type { CatalogItem } from "./model";
-import { addTitleAtom, listAtom, queryAtom, searchAtom, settingsAtom } from "./state";
+import {
+  addTitleAtom,
+  listAtom,
+  queryAtom,
+  searchAtom,
+  settingsAtom,
+  suggestionsAtom,
+} from "./state";
 import { posterUri } from "./TitleRow";
 
 function ResultRow({
@@ -82,6 +89,8 @@ export function SearchSheet() {
   const navigation = useNavigation<NativeStackNavigationProp<WatchlistParamList>>();
   const [query, setQuery] = useAtom(queryAtom);
   const result = useAtomValue(searchAtom);
+  const suggested = useAtomValue(suggestionsAtom);
+  const suggestions = !query.trim() && AsyncResult.isSuccess(suggested) ? suggested.value : [];
   const list = useAtomValue(listAtom);
   const settings = useAtomValue(settingsAtom);
   const add = useAtomSet(addTitleAtom);
@@ -149,6 +158,22 @@ export function SearchSheet() {
             <X size={14} color={colors.muted} />
             <Text className="text-[13px] text-muted">Clear</Text>
           </Pressable>
+        ) : null}
+        {suggestions.length ? (
+          <View className="mb-4">
+            <AppText variant="overline" className="mb-2 px-1">
+              Suggested for you
+            </AppText>
+            {suggestions.slice(0, 10).map((item) => (
+              <ResultRow
+                key={item.key}
+                item={item}
+                saved={savedKeys.has(item.key)}
+                onOpen={() => navigation.navigate("Details", { key: item.key })}
+                onAdd={() => onAdd(item)}
+              />
+            ))}
+          </View>
         ) : null}
         {heading ? (
           <AppText variant="overline" className="mb-2 px-1">

@@ -1,9 +1,10 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Image } from "expo-image";
 import { AsyncResult } from "effect/reactivity";
 import { Check, ExternalLink, Play, Plus, Share2, Star, Trash2 } from "lucide-react-native";
-import { Linking, Pressable, Share, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Share, Text, View } from "react-native";
 
 import { AppText } from "../../components/ui/AppText";
 import { Button } from "../../components/ui/Button";
@@ -15,9 +16,15 @@ import { Surface } from "../../components/ui/Surface";
 import { haptic } from "../../lib/haptics";
 import { fmtDate, fmtRuntime, isFuture, year } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
-import { colors } from "../../theme";
 import { REGIONS, type Availability, type CatalogItem } from "./model";
-import { addTitleAtom, detailsAtom, knownItemsAtom, listAtom, settingsAtom } from "./state";
+import {
+  addTitleAtom,
+  detailsAtom,
+  knownItemsAtom,
+  listAtom,
+  relatedAtom,
+  settingsAtom,
+} from "./state";
 import { posterUri, TMDB_IMG } from "./TitleRow";
 import { useWatchlistActions } from "./useWatchlistActions";
 
@@ -64,6 +71,39 @@ function ProviderGroup({
         </View>
       ))}
     </View>
+  );
+}
+
+/** Related titles TMDB recommends for this one; tap one to open its page. */
+function MoreLikeThis({ itemKey }: { readonly itemKey: string }) {
+  const navigation = useNavigation<NativeStackNavigationProp<WatchlistParamList>>();
+  const related = useAtomValue(relatedAtom(itemKey));
+  const items = AsyncResult.isSuccess(related) ? related.value : [];
+  if (!items.length) return null;
+  return (
+    <Section title="More like this">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5">
+        <View className="flex-row gap-3 px-5">
+          {items.map((x) => (
+            <Pressable
+              key={x.key}
+              accessibilityRole="button"
+              accessibilityLabel={x.title}
+              onPress={() => navigation.push("Details", { key: x.key })}
+              className="w-[96px] active:opacity-80"
+            >
+              <Poster uri={posterUri(x, true)} title={x.title} size="tile" />
+              <Text numberOfLines={2} className="mt-1.5 text-[12.5px] leading-4 text-ink">
+                {x.title}
+              </Text>
+              <Text numberOfLines={1} className="text-[11.5px] text-muted">
+                {[year(x.date), x.type === "movie" ? "Movie" : "Show"].filter(Boolean).join(" · ")}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+    </Section>
   );
 }
 
@@ -237,28 +277,6 @@ export function DetailsSheet() {
         />
       </Section>
 
-      {saved ? (
-        <Section title="Your rating">
-          <View className="flex-row gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable
-                key={n}
-                accessibilityRole="button"
-                accessibilityLabel={`${n} star${n > 1 ? "s" : ""}`}
-                onPress={() => actions.rate(saved, n)}
-                className="size-11 items-center justify-center"
-              >
-                <Star
-                  size={30}
-                  color={saved.myRating >= n ? colors.star : colors.muted}
-                  fill={saved.myRating >= n ? colors.star : "transparent"}
-                />
-              </Pressable>
-            ))}
-          </View>
-        </Section>
-      ) : null}
-
       {it.overview ? (
         <Section title="Overview">
           <AppText className="leading-6">{it.overview}</AppText>
@@ -275,6 +293,8 @@ export function DetailsSheet() {
           ))}
         </Surface>
       </Section>
+
+      <MoreLikeThis itemKey={it.key} />
 
       <AppText variant="caption" className="mt-6 text-[11px] leading-4">
         Movie data: Apple iTunes Search. TV data: TVmaze (CC BY-SA). With a key: this product uses

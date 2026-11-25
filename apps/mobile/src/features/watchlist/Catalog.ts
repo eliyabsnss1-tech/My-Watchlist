@@ -280,6 +280,11 @@ export class Catalog extends Context.Service<
     readonly checkTmdbKey: (
       key: string,
     ) => Effect.Effect<void, TmdbKeyRejectedError | CatalogRequestError>;
+    /** Titles TMDB recommends for one title ("more like this"). Empty without a TMDB key. */
+    readonly recommendations: (
+      item: CatalogItem,
+      settings: Settings,
+    ) => Effect.Effect<ReadonlyArray<CatalogItem>, TmdbKeyRejectedError | CatalogRequestError>;
   }
 >()("mobile/features/watchlist/Catalog") {}
 
@@ -419,11 +424,35 @@ const make = Effect.gen(function* () {
     return fromTmdbDetails(d, item.type, settings.region, now);
   });
 
+  const recommendations = Effect.fn("Catalog.recommendations")(function* (
+    item: CatalogItem,
+    settings: Settings,
+  ) {
+    if (!settings.tmdbKey || item.src !== "tmdb") return [];
+    const get = (kind: "recommendations" | "similar") =>
+      tmdbGet(
+        `/${item.type}/${item.id}/${kind}`,
+        { language: settings.lang },
+        settings.tmdbKey,
+        TmdbList,
+      );
+    const recommended = yield* get("recommendations");
+    const data = recommended.results.length ? recommended : yield* get("similar");
+    return data.results
+      .map((r) =>
+        fromTmdbListItem(
+          r,
+          r.media_type === "movie" || r.media_type === "tv" ? r.media_type : item.type,
+        ),
+      )
+      .filter((x) => x.title && x.key !== item.key);
+  });
+
   const checkTmdbKey = Effect.fn("Catalog.checkTmdbKey")(function* (key: string) {
     yield* tmdbGet("/configuration", {}, key, Schema.Unknown);
   });
 
-  return Catalog.of({ search, details, checkTmdbKey });
+  return Catalog.of({ search, details, checkTmdbKey, recommendations });
 });
 
 export const layer = Layer.effect(Catalog, make);

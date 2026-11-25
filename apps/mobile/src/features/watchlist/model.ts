@@ -69,7 +69,20 @@ export const DeletedTitle = Schema.Struct({
 });
 export type DeletedTitle = typeof DeletedTitle.Type;
 
-export const SortOrder = Schema.Literals(["added", "date", "short", "long", "rating", "title"]);
+export const SortOrder = Schema.Literals([
+  "added",
+  "addedOld",
+  "date",
+  "dateOld",
+  "upcoming",
+  "short",
+  "long",
+  "rating",
+  "title",
+  "titleDesc",
+  "movies",
+  "shows",
+]);
 export type SortOrder = typeof SortOrder.Type;
 
 export const Settings = Schema.Struct({
@@ -103,9 +116,15 @@ export const REGIONS: Readonly<Record<string, string>> = {
 
 export const SORT_LABELS: Readonly<Record<SortOrder, string>> = {
   added: "Recently added",
+  addedOld: "Oldest added",
   date: "Newest release",
+  dateOld: "Oldest release",
+  upcoming: "Coming soon",
   short: "Shortest first",
   long: "Longest first",
   rating: "Top rated",
   title: "A–Z",
+  titleDesc: "Z–A",
+  movies: "Movies first",
+  shows: "Shows first",
 };

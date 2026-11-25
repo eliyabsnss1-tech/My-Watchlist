@@ -42,8 +42,5 @@ export function useWatchlistActions() {
     );
   };
 
-  const rate = (item: SavedTitle, stars: number) =>
-    setList((l) => List.patch(l, item.key, { myRating: item.myRating === stars ? 0 : stars }));
-
-  return { toggleWatched, remove, rate };
+  return { toggleWatched, remove };
 }

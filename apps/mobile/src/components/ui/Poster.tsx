@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 const SIZES = {
   sm: { width: 44, height: 66, radius: 10, font: 18 },
   md: { width: 54, height: 81, radius: 12, font: 22 },
+  tile: { width: 96, height: 144, radius: 14, font: 32 },
   lg: { width: 116, height: 174, radius: 20, font: 40 },
 } as const;
 

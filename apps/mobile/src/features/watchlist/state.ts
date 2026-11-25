@@ -31,22 +31,67 @@ export const settingsAtom = Atom.kvs({
 
 export const segmentAtom = Atom.make<"todo" | "done">("todo").pipe(Atom.keepAlive);
 
-export const queryAtom = Atom.make("").pipe(Atom.keepAlive);
+// Not kept alive: closing the search sheet drops the text and results, so it opens fresh.
+export const queryAtom = Atom.make("");
 
 const debouncedQueryAtom = Atom.debounce(queryAtom, "400 millis");
 
-export const searchAtom = runtime
-  .atom((get) =>
+export const searchAtom = runtime.atom((get) =>
+  Effect.gen(function* () {
+    const catalog = yield* Catalog.Catalog;
+    return yield* catalog.search(get(debouncedQueryAtom), get(settingsAtom));
+  }),
+);
+
+/** Titles seen in suggestions and "more like this", so their details can open. */
+export const seenItemsAtom = Atom.make<ReadonlyMap<string, CatalogItem>>(new Map()).pipe(
+  Atom.keepAlive,
+);
+
+const remember = (get: Atom.AtomContext, items: ReadonlyArray<CatalogItem>) => {
+  const seen = new Map(get.once(seenItemsAtom));
+  for (const item of items) if (!seen.has(item.key)) seen.set(item.key, item);
+  get.set(seenItemsAtom, seen);
+};
+
+/** "More like this" for one title, without titles already saved. */
+export const relatedAtom = Atom.family((key: string) =>
+  runtime.atom((get) =>
     Effect.gen(function* () {
+      const base = get.once(knownItemsAtom).get(key);
+      if (!base) return [];
       const catalog = yield* Catalog.Catalog;
-      return yield* catalog.search(get(debouncedQueryAtom), get(settingsAtom));
+      const items = yield* catalog
+        .recommendations(base, get(settingsAtom))
+        .pipe(Effect.orElseSucceed(() => []));
+      remember(get, items);
+      return items.slice(0, 15);
     }),
-  )
-  .pipe(Atom.keepAlive);
+  ),
+);
+
+/** Suggestions for the search sheet before anything is typed, based on both tabs. */
+export const suggestionsAtom = runtime.atom((get) =>
+  Effect.gen(function* () {
+    const settings = get(settingsAtom);
+    const list = get.once(listAtom);
+    const seeds = List.suggestionSeeds(list);
+    if (!settings.tmdbKey || !seeds.length) return [];
+    const catalog = yield* Catalog.Catalog;
+    const lists = yield* Effect.forEach(
+      seeds,
+      (seed) => catalog.recommendations(seed, settings).pipe(Effect.orElseSucceed(() => [])),
+      { concurrency: 3 },
+    );
+    const items = List.rankSuggestions(lists, new Set(list.map((x) => x.key)));
+    remember(get, items);
+    return items;
+  }),
+);
 
 /** Search results and saved titles by key, so details can open either. */
 export const knownItemsAtom = Atom.make((get): ReadonlyMap<string, CatalogItem> => {
-  const known = new Map<string, CatalogItem>();
+  const known = new Map<string, CatalogItem>(get(seenItemsAtom));
   const search = get(searchAtom);
   if (search._tag === "Success") for (const item of search.value.items) known.set(item.key, item);
   for (const item of get(listAtom)) known.set(item.key, item);

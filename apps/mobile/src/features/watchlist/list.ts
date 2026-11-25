@@ -1,6 +1,8 @@
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
+import { todayIso } from "../../lib/time";
+
 import {
   DELETED_MAX,
   SavedTitle,
@@ -13,11 +15,21 @@ type List = ReadonlyArray<SavedTitle>;
 
 export const SORTS: Readonly<Record<SortOrder, (a: SavedTitle, b: SavedTitle) => number>> = {
   added: (a, b) => b.added - a.added,
+  addedOld: (a, b) => a.added - b.added,
   date: (a, b) => (b.date || "0").localeCompare(a.date || "0"),
+  dateOld: (a, b) => (a.date || "9").localeCompare(b.date || "9"),
+  // Next release or episode soonest first; titles with nothing coming go last.
+  upcoming: (a, b) => {
+    const next = (x: SavedTitle) => x.next || (x.date > todayIso() ? x.date : "") || "9";
+    return next(a).localeCompare(next(b)) || b.added - a.added;
+  },
   short: (a, b) => (a.runtime || 9999) - (b.runtime || 9999),
   long: (a, b) => (b.runtime || 0) - (a.runtime || 0),
   rating: (a, b) => b.rating - a.rating,
   title: (a, b) => a.title.localeCompare(b.title),
+  titleDesc: (a, b) => b.title.localeCompare(a.title),
+  movies: (a, b) => Number(a.type !== "movie") - Number(b.type !== "movie") || b.added - a.added,
+  shows: (a, b) => Number(a.type !== "tv") - Number(b.type !== "tv") || b.added - a.added,
 };
 
 export const visible = (list: List, seg: "todo" | "done", sort: SortOrder): Array<SavedTitle> =>
@@ -126,4 +138,43 @@ export const seriesName = (group: ReadonlyArray<SavedTitle>): string => {
     .split(/\s*[:–—]\s*|\s+-\s+/)[0]!
     .replace(/\s+(\d{1,2}|II|III|IV|V|VI)$/, "")
     .trim();
+};
+
+/** Titles to base suggestions on: the newest additions from both tabs. */
+export const suggestionSeeds = (list: ReadonlyArray<SavedTitle>, count = 6): Array<SavedTitle> => {
+  const newest = (xs: ReadonlyArray<SavedTitle>) =>
+    xs.filter((x) => x.src === "tmdb").sort((a, b) => b.added - a.added);
+  const todo = newest(list.filter((x) => !x.watched));
+  const done = newest(list.filter((x) => x.watched));
+  const half = Math.ceil(count / 2);
+  const picked = [...todo.slice(0, half), ...done.slice(0, count - half)];
+  // Top up from either tab when one has fewer than its half.
+  for (const x of [...todo, ...done]) {
+    if (picked.length >= count) break;
+    if (!picked.includes(x)) picked.push(x);
+  }
+  return picked;
+};
+
+/**
+ * Merges "more like this" lists into one: a title recommended for several of your titles, or near
+ * the top of a list, ranks higher. Titles already saved are left out.
+ */
+export const rankSuggestions = (
+  lists: ReadonlyArray<ReadonlyArray<CatalogItem>>,
+  saved: ReadonlySet<string>,
+  max = 20,
+): Array<CatalogItem> => {
+  const score = new Map<string, { item: CatalogItem; score: number }>();
+  for (const items of lists)
+    items.forEach((item, i) => {
+      if (saved.has(item.key)) return;
+      const prev = score.get(item.key);
+      const add = 1 + Math.max(0, 20 - i) / 20;
+      score.set(item.key, { item, score: (prev?.score ?? 0) + add });
+    });
+  return [...score.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max)
+    .map((x) => x.item);
 };
