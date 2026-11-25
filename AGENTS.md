@@ -9,6 +9,8 @@ Current apps:
 
 The repo is a pnpm monorepo driven by Vite+ (`vp`). The phone app is `apps/mobile`. Shared, UI-free logic lives in `packages/`. A feature starts as a folder in `apps/mobile/src/features/<name>` and becomes a package only when a second app needs it.
 
+The root also holds the original Watchlist website (`index.html`, `sw.js`, `version.json`, `manifest.webmanifest`, icons), still live on GitHub Pages at https://eliyabsnss1-tech.github.io/My-Watchlist/ for the copy installed on the phone. It is frozen: don't change it unless asked. If asked, bump `APP_VERSION` in `index.html` and `version.json` together (that is how the installed copy notices an update), and bump `V` in `sw.js` when its file list changes.
+
 ## Reference: T3 Code
 
 [T3 Code](https://github.com/pingdotgg/t3code) is the reference for this repo's preferences: tooling, TypeScript strictness, how Effect is written (services, layers, `Effect.fn`, tagged errors, atoms) and how the mobile app is structured. When unsure how something should be done, check how T3 Code does it. Read `.repos/effect/LLMS.md` before writing Effect code (`pnpm sync:repos` fetches it).

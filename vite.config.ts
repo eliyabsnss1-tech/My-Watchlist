@@ -13,6 +13,11 @@ const IGNORED = [
   "apps/mobile/src/uniwind-types.d.ts",
   // Original ElementScope engine, kept byte-for-byte; typed through core.d.ts.
   "apps/mobile/src/features/elementscope/engine/core.js",
+  // The original Watchlist website, live on GitHub Pages; kept exactly as shipped.
+  "index.html",
+  "sw.js",
+  "version.json",
+  "manifest.webmanifest",
 ];
 
 export default defineConfig({
