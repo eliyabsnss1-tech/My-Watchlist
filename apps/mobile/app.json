@@ -33,7 +33,30 @@
     "experiments": {
       "reactCompiler": true
     },
-    "plugins": ["expo-sqlite", "expo-sharing", "expo-image"],
+    "plugins": [
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-image",
+      "expo-notifications",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "UpNext",
+              "label": "Up next",
+              "description": "Your next movies and shows to watch",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
+    ],
     "extra": {
       "supportsRTL": false,
       "eas": {

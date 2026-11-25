@@ -63,3 +63,21 @@ export function ago(millis: number): string {
   const days = Math.round(hours / 24);
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** The phone's wall-clock time now, as "2026-12-03T18:00:00". */
+export function localNowIso(): string {
+  const p = DateTime.toParts(DateTime.setZone(DateTime.nowUnsafe(), DateTime.zoneMakeLocal()));
+  return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;
+}
+
+/** Epoch millis of a wall-clock time like "2026-12-03T18:00:00" in the phone's time zone. */
+export function localMillis(iso: string): number | undefined {
+  const [year = 0, month = 0, day = 0, hour = 0, minute = 0] = iso.split(/[-T:]/).map(Number);
+  const zoned = DateTime.makeZoned(
+    { year, month, day, hour, minute },
+    { timeZone: DateTime.zoneMakeLocal(), adjustForTimeZone: true },
+  );
+  return zoned._tag === "Some" ? DateTime.toEpochMillis(zoned.value) : undefined;
+}

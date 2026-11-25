@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 
 import * as List from "./list";
 import type { SavedTitle } from "./model";
+import { upcomingReminders } from "./reminders";
 import { computeStats } from "./stats";
 
 const title = (key: string, extra: Partial<SavedTitle> = {}): SavedTitle => ({
@@ -96,5 +97,22 @@ describe("watchlist list", () => {
     ]);
     assert.strictEqual(List.seriesName(List.groupSeries(items)[0]!), "Scary Movie");
     assert.strictEqual(List.seriesName(List.groupSeries(items)[6]!), "Dune");
+  });
+
+  it("reminds about upcoming episodes and releases only for titles still to watch", () => {
+    const list = [
+      title("Old movie", { date: "2020-01-01" }),
+      title("New movie", { date: "2027-02-01" }),
+      title("Seen movie", { date: "2027-01-01", watched: true }),
+      title("Show", { type: "tv", next: "2027-01-15" }),
+    ];
+    const r = upcomingReminders(list, "2026-12-01T09:00:00");
+    assert.deepStrictEqual(
+      r.map((x) => [x.title, x.at]),
+      [
+        ["New episode of Show", "2027-01-15T18:00:00"],
+        ["New movie is out today", "2027-02-01T10:00:00"],
+      ],
+    );
   });
 });

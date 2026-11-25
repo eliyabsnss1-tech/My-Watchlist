@@ -34,16 +34,18 @@ const dragSheet: NativeStackNavigationOptions = {
 };
 
 const WatchlistStack = createNativeStackNavigator({
+  initialRouteName: "WatchlistHome",
   screenOptions: {
     headerShown: false,
     contentStyle: { backgroundColor: colors.bg },
     animation: "slide_from_right",
   },
   screens: {
-    WatchlistHome: WatchlistScreen,
+    WatchlistHome: { screen: WatchlistScreen, linking: "" },
     Settings: SettingsScreen,
-    Search: { screen: SearchSheet, options: sheet },
-    Details: { screen: DetailsSheet, options: sheet },
+    // myapps://watchlist/add and myapps://watchlist/title/<key> are opened by the widget and notifications.
+    Search: { screen: SearchSheet, options: sheet, linking: "add" },
+    Details: { screen: DetailsSheet, options: sheet, linking: "title/:key" },
     Stats: { screen: StatsSheet, options: dragSheet },
     Deleted: { screen: DeletedSheet, options: dragSheet },
   },
@@ -76,7 +78,7 @@ const Drawer = createDrawerNavigator({
   },
   screens: {
     Home: HomeScreen,
-    Watchlist: WatchlistStack,
+    Watchlist: { screen: WatchlistStack, linking: "watchlist" },
     ElementScope: ElementScopeStack,
   },
 });

@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { SnackbarHost } from "./components/ui/Snackbar";
+import { useDeviceSync } from "./features/device/useDeviceSync";
 import { AppNavigation } from "./navigation";
 import { colors } from "./theme";
 
@@ -17,8 +18,14 @@ export function App() {
           <StatusBar style="light" />
           <AppNavigation />
           <SnackbarHost />
+          <DeviceSync />
         </RegistryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+function DeviceSync() {
+  useDeviceSync();
+  return null;
 }
