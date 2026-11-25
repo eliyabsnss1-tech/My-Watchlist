@@ -15,12 +15,13 @@ import {
   Trash2,
   Tv,
 } from "lucide-react-native";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useRef, useState, type RefObject } from "react";
+import { Pressable, Text, View, type HostInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppBar } from "../../components/ui/AppBar";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { FlyingBadge, type Flight } from "../../components/ui/FlyingBadge";
 import { IconButton } from "../../components/ui/IconButton";
 import { Screen } from "../../components/ui/Screen";
 import { Segmented } from "../../components/ui/Segmented";
@@ -38,6 +39,17 @@ import { useWatchlistActions } from "./useWatchlistActions";
 const DELETE: SwipeAction = { label: "Delete", icon: Trash2, color: colors.danger };
 const WATCHED: SwipeAction = { label: "Watched", icon: Check, color: colors.ok };
 const UNWATCH: SwipeAction = { label: "Not watched", icon: RotateCcw, color: colors.accent };
+
+type Point = { readonly x: number; readonly y: number };
+type Rect = Point & { readonly w: number; readonly h: number };
+
+const measure = (ref: RefObject<HostInstance | null>) =>
+  new Promise<Rect | undefined>((resolve) => {
+    if (!ref.current) return resolve(undefined);
+    ref.current.measureInWindow((x, y, w, h) => resolve({ x, y, w, h }));
+  });
+
+let nextFlight = 1;
 
 export function WatchlistScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WatchlistParamList>>();
@@ -65,11 +77,44 @@ export function WatchlistScreen() {
   const right = segment === "todo" ? WATCHED : DELETE;
   const left = segment === "todo" ? DELETE : UNWATCH;
 
+  // Show where a swiped title went: a badge flies to the tab or to Recently deleted.
+  const layer = useRef<HostInstance>(null);
+  const tabs = useRef<HostInstance>(null);
+  const history = useRef<HostInstance>(null);
+  const [flights, setFlights] = useState<ReadonlyArray<Flight>>([]);
+  const fly = async (from: Point, to: "todo" | "done" | "deleted", action: SwipeAction) => {
+    const [origin, target] = await Promise.all([
+      measure(layer),
+      measure(to === "deleted" ? history : tabs),
+    ]);
+    if (!origin || !target) return;
+    const x =
+      to === "deleted"
+        ? target.x + target.w / 2
+        : target.x + target.w * (to === "todo" ? 0.25 : 0.75);
+    const flight: Flight = {
+      id: nextFlight++,
+      from: { x: from.x - origin.x, y: from.y - origin.y },
+      to: { x: x - origin.x, y: target.y + target.h / 2 - origin.y },
+      icon: action.icon,
+      color: action.color,
+    };
+    setFlights((f) => [...f, flight]);
+  };
+
   const row = (item: SavedTitle) => (
     <SwipeRow
       key={item.key}
       right={right}
       left={left}
+      onLaunch={(dir, from) => {
+        const isDelete = item.watched ? dir === "right" : dir === "left";
+        void fly(
+          from,
+          isDelete ? "deleted" : item.watched ? "todo" : "done",
+          dir === "right" ? right : left,
+        );
+      }}
       onSwipe={(dir) => {
         const isDelete = item.watched ? dir === "right" : dir === "left";
         if (isDelete) actions.remove(item);
@@ -81,9 +126,6 @@ export function WatchlistScreen() {
         settings={settings}
         onOpen={() => {
           if (!swipedRecently()) navigation.navigate("Details", { key: item.key });
-        }}
-        onToggle={() => {
-          if (!swipedRecently()) actions.toggleWatched(item, true);
         }}
       />
     </SwipeRow>
@@ -101,12 +143,14 @@ export function WatchlistScreen() {
               size="sm"
               onPress={() => navigation.navigate("Stats")}
             />
-            <IconButton
-              icon={History}
-              label="Recently deleted"
-              size="sm"
-              onPress={() => navigation.navigate("Deleted")}
-            />
+            <View ref={history}>
+              <IconButton
+                icon={History}
+                label="Recently deleted"
+                size="sm"
+                onPress={() => navigation.navigate("Deleted")}
+              />
+            </View>
             <IconButton
               icon={Settings2}
               label="Settings"
@@ -117,15 +161,16 @@ export function WatchlistScreen() {
         }
       />
       {list.length ? (
-        <Segmented
-          className="mx-4 mb-2 mt-1"
-          value={segment}
-          onChange={setSegment}
-          options={[
-            { value: "todo", label: `To watch · ${todo}` },
-            { value: "done", label: `Watched · ${list.length - todo}` },
-          ]}
-        />
+        <View ref={tabs} className="mx-4 mb-2 mt-1">
+          <Segmented
+            value={segment}
+            onChange={setSegment}
+            options={[
+              { value: "todo", label: `To watch · ${todo}` },
+              { value: "done", label: `Watched · ${list.length - todo}` },
+            ]}
+          />
+        </View>
       ) : null}
       <LegendList
         data={groups}
@@ -208,6 +253,19 @@ export function WatchlistScreen() {
           size="lg"
           onPress={() => navigation.navigate("Search")}
         />
+      </View>
+      <View
+        ref={layer}
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      >
+        {flights.map((f) => (
+          <FlyingBadge
+            key={f.id}
+            flight={f}
+            onDone={() => setFlights((all) => all.filter((x) => x.id !== f.id))}
+          />
+        ))}
       </View>
     </Screen>
   );

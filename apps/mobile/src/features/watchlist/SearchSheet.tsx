@@ -3,7 +3,8 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AsyncResult } from "effect/reactivity";
 import { Check, Film, Plus, Search, X } from "lucide-react-native";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useRef } from "react";
+import { Pressable, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "../../components/ui/AppText";
@@ -87,6 +88,11 @@ export function SearchSheet() {
   const setSnack = useAtomSet(snackAtom);
   const insets = useSafeAreaInsets();
   const savedKeys = new Set(list.map((x) => x.key));
+  const scroll = useRef<ScrollViewInstance>(null);
+  const search = (text: string) => {
+    setQuery(text);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  };
 
   const onAdd = (item: CatalogItem) => {
     add(item);
@@ -115,7 +121,7 @@ export function SearchSheet() {
           className="mt-4"
           icon={Search}
           value={query}
-          onChangeText={setQuery}
+          onChangeText={search}
           placeholder="Search movies & shows"
           autoFocus
           autoCorrect={false}
@@ -125,6 +131,7 @@ export function SearchSheet() {
       }
     >
       <ScrollView
+        ref={scroll}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
@@ -136,7 +143,7 @@ export function SearchSheet() {
       >
         {query ? (
           <Pressable
-            onPress={() => setQuery("")}
+            onPress={() => search("")}
             className="mb-2 flex-row items-center gap-1 self-end px-1"
           >
             <X size={14} color={colors.muted} />

@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
   Easing,
-  SlideInDown,
+  FadeInRight,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -28,8 +29,8 @@ const SNACK_MS = 5000;
 const KINDS: Readonly<Record<Snack["kind"], { icon: LucideIcon; color: string; message: string }>> =
   {
     deleted: { icon: Trash2, color: colors.danger, message: "Deleted" },
-    watched: { icon: Check, color: colors.ok, message: "Moved to Watched" },
-    unwatched: { icon: RotateCcw, color: colors.accent, message: "Moved back to To watch" },
+    watched: { icon: Check, color: colors.ok, message: "Marked watched" },
+    unwatched: { icon: RotateCcw, color: colors.accent, message: "Back to To watch" },
     info: { icon: Info, color: colors.accent, message: "" },
   };
 
@@ -60,43 +61,51 @@ export function SnackbarHost() {
   const k = KINDS[snack.kind];
   const Icon = k.icon;
   const undo = snack.undo;
+  // Swipe actions say only what happened (the title flies to where it went); notes show both lines.
+  const line1 = snack.kind === "info" ? snack.title : k.message;
+  const line2 = snack.kind === "info" ? snack.message : undefined;
   return (
     <Animated.View
       key={snack.id}
-      entering={SlideInDown.duration(400).easing(Easing.bezierFn(...motion.emphasizedDecelerate))}
+      entering={FadeInRight.duration(260).easing(Easing.bezierFn(...motion.emphasizedDecelerate))}
+      exiting={FadeOut.duration(160)}
       pointerEvents="box-none"
-      style={{ position: "absolute", left: 12, right: 12, bottom: insets.bottom + 96 }}
+      style={{ position: "absolute", right: 12, bottom: insets.bottom + 96, maxWidth: "72%" }}
     >
-      <View className="min-h-16 flex-row items-center gap-3 overflow-hidden rounded-3xl bg-[#e9efff] py-2 pl-3 pr-2">
+      <View className="min-h-11 flex-row items-center gap-2 overflow-hidden rounded-3xl border border-line bg-surface-2 py-1 pl-2 pr-1">
         <View
           style={{ backgroundColor: k.color }}
-          className="size-9 items-center justify-center rounded-full"
+          className="size-6 items-center justify-center rounded-full"
         >
-          <Icon size={18} color="#06102a" strokeWidth={2.4} />
+          <Icon size={13} color="#06102a" strokeWidth={2.6} />
         </View>
-        <View className="flex-1">
-          <Text numberOfLines={1} className="text-[15px] font-bold text-[#0a1430]">
-            {snack.title}
+        <View className="shrink">
+          <Text numberOfLines={1} className="text-[13px] text-ink">
+            {line1}
           </Text>
-          <Text numberOfLines={1} className="text-[13px] text-[#33416a]">
-            {snack.message ?? k.message}
-          </Text>
+          {line2 ? (
+            <Text numberOfLines={1} className="text-[11.5px] text-muted">
+              {line2}
+            </Text>
+          ) : null}
         </View>
         {undo ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Undo: ${k.message} ${snack.title}`}
+            hitSlop={8}
             onPress={() => {
               setSnack(null);
               undo();
               haptic("light");
             }}
-            className="h-11 flex-row items-center gap-1.5 rounded-full bg-primary-strong pl-3 pr-4 active:opacity-80"
+            className="h-9 justify-center rounded-full px-3 active:bg-surface-3"
           >
-            <RotateCcw size={17} color="#fff" strokeWidth={2.4} />
-            <Text className="text-[15px] font-bold text-white">Undo</Text>
+            <Text className="text-[13px] font-bold text-accent">Undo</Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <View className="w-2" />
+        )}
         <Animated.View
           style={[
             {
@@ -104,9 +113,9 @@ export function SnackbarHost() {
               left: 0,
               right: 0,
               bottom: 0,
-              height: 3,
-              backgroundColor: colors.primaryStrong,
-              opacity: 0.5,
+              height: 2,
+              backgroundColor: colors.accent,
+              opacity: 0.45,
               transformOrigin: "left",
             },
             bar,

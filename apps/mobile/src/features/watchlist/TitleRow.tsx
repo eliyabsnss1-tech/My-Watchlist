@@ -1,11 +1,9 @@
 import { Image } from "expo-image";
-import { Check } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
 import { Poster } from "../../components/ui/Poster";
 import { cn } from "../../lib/cn";
 import { fmtDate, fmtRuntime, isFuture } from "../../lib/time";
-import { colors } from "../../theme";
 import type { SavedTitle, Settings } from "./model";
 
 export const TMDB_IMG = "https://image.tmdb.org/t/p/";
@@ -47,11 +45,10 @@ export interface TitleRowProps {
   readonly item: SavedTitle;
   readonly settings: Settings;
   readonly onOpen: () => void;
-  readonly onToggle: () => void;
 }
 
 /** Every row is exactly the same height: each line is one line and trims with "…". */
-export function TitleRow({ item, settings, onOpen, onToggle }: TitleRowProps) {
+export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
   const movie = item.type === "movie";
   const length = movie
     ? fmtRuntime(item.runtime)
@@ -104,17 +101,6 @@ export function TitleRow({ item, settings, onOpen, onToggle }: TitleRowProps) {
           </Text>
         </View>
       </View>
-      {item.watched ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mark as watched"
-          hitSlop={6}
-          onPress={onToggle}
-          className="size-10 items-center justify-center rounded-full bg-surface-2"
-        >
-          <Check size={20} color={colors.ink} strokeWidth={2.4} />
-        </Pressable>
-      )}
     </Pressable>
   );
 }

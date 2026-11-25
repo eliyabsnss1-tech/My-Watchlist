@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react-native";
-import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { useRef, type ReactNode } from "react";
+import { Text, View, type HostInstance } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -25,6 +25,8 @@ export interface SwipeRowProps {
   /** Revealed when the row is dragged to the left. */
   readonly left: SwipeAction;
   readonly onSwipe: (direction: "right" | "left") => void;
+  /** As soon as a swipe is let go: the row's center on screen, for showing where it goes. */
+  readonly onLaunch?: (direction: "right" | "left", from: { x: number; y: number }) => void;
   readonly children: ReactNode;
 }
 
@@ -35,7 +37,13 @@ const markSwipe = () => {
 /** True right after a row was dragged, so the release doesn't also count as a tap. */
 export const swipedRecently = (): boolean => performance.now() - lastSwipeAt < 450;
 
-const FLING_VELOCITY = 500; // px/s, a deliberate flick (Android's swipe-to-dismiss uses a similar escape velocity)
+// Deliberately firm, so scrolling the list doesn't trigger a swipe by accident.
+const FLING_VELOCITY = 1100; // px/s
+const START_DISTANCE = 26;
+const commitDistance = (width: number) => {
+  "worklet";
+  return Math.min(170, width * 0.42);
+};
 // Built once here: the gesture callbacks run on the UI thread and can't call plain JS helpers.
 const SNAP_BACK = Easing.bezier(...motion.emphasizedDecelerate);
 const FLY_OFF = Easing.bezier(...motion.standardDecelerate);
@@ -61,19 +69,24 @@ function ActionLabel({
   );
 }
 
-export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
+export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowProps) {
   const x = useSharedValue(0);
   const width = useSharedValue(360);
   const height = useSharedValue(-1);
   const measured = useSharedValue(0);
   const armed = useSharedValue(false);
 
+  const wrap = useRef<HostInstance>(null);
+  const launch = (direction: "right" | "left") =>
+    wrap.current?.measureInWindow((x, y, w, h) =>
+      onLaunch?.(direction, { x: x + w / 2, y: y + h / 2 }),
+    );
   const commit = (direction: "right" | "left") => onSwipe(direction);
   const buzz = () => haptic("light");
 
   const pan = usePanGesture({
-    activeOffsetX: [-12, 12],
-    failOffsetY: [-10, 10],
+    activeOffsetX: [-START_DISTANCE, START_DISTANCE],
+    failOffsetY: [-12, 12],
     onActivate: () => {
       "worklet";
       scheduleOnRN(markSwipe);
@@ -81,7 +94,7 @@ export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
     onUpdate: (e) => {
       "worklet";
       x.value = e.translationX;
-      const nowArmed = Math.abs(e.translationX) > Math.min(110, width.value * 0.28);
+      const nowArmed = Math.abs(e.translationX) > commitDistance(width.value);
       if (nowArmed !== armed.value) {
         armed.value = nowArmed;
         if (nowArmed) scheduleOnRN(buzz);
@@ -92,14 +105,15 @@ export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
       const tx = e.translationX;
       const v = e.velocityX;
       const flung =
-        Math.abs(v) > FLING_VELOCITY && Math.abs(tx) > 30 && Math.sign(v) === Math.sign(tx);
+        Math.abs(v) > FLING_VELOCITY && Math.abs(tx) > 80 && Math.sign(v) === Math.sign(tx);
       armed.value = false;
-      if (e.canceled || !(Math.abs(tx) > Math.min(110, width.value * 0.28) || flung)) {
+      if (e.canceled || !(Math.abs(tx) > commitDistance(width.value) || flung)) {
         x.value = withTiming(0, { duration: 300, easing: SNAP_BACK });
         return;
       }
       scheduleOnRN(markSwipe);
       const direction = tx > 0 ? "right" : "left";
+      scheduleOnRN(launch, direction);
       const target = Math.sign(tx) * (width.value + 20);
       const remaining = Math.abs(target - tx);
       const fly = Math.min(220, Math.max(110, (remaining / Math.max(Math.abs(v), 1500)) * 1000));
@@ -127,6 +141,7 @@ export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
 
   return (
     <Animated.View
+      ref={wrap}
       style={wrapStyle}
       className="mx-3 mb-2 overflow-hidden rounded-3xl"
       onLayout={(e) => {
