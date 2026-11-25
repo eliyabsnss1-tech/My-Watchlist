@@ -21,7 +21,7 @@ export const SECTIONS: ReadonlyArray<Section> = [
   {
     route: "ElementScope",
     title: "ElementScope",
-    description: "Explore the chemical elements",
+    description: "What is anything made of?",
     icon: Atom,
     gradient: ["#2bc4e0", "#0f5a96"],
   },

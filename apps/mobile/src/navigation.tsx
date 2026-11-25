@@ -6,6 +6,7 @@ import {
 } from "@react-navigation/native-stack";
 
 import { ElementScopeScreen } from "./features/elementscope/ElementScopeScreen";
+import { ElementSheet } from "./features/elementscope/ElementSheet";
 import { DrawerContent } from "./features/home/DrawerContent";
 import { HomeScreen } from "./features/home/HomeScreen";
 import { DeletedSheet } from "./features/watchlist/DeletedSheet";
@@ -41,6 +42,17 @@ const WatchlistStack = createNativeStackNavigator({
   },
 });
 
+const ElementScopeStack = createNativeStackNavigator({
+  screenOptions: {
+    headerShown: false,
+    contentStyle: { backgroundColor: colors.bg },
+  },
+  screens: {
+    ElementScopeHome: { screen: ElementScopeScreen, options: { title: "ElementScope" } },
+    Element: { screen: ElementSheet, options: { ...sheet, title: "Element" } },
+  },
+});
+
 const Drawer = createDrawerNavigator({
   drawerContent: (props) => <DrawerContent {...props} />,
   screenOptions: {
@@ -58,7 +70,7 @@ const Drawer = createDrawerNavigator({
   screens: {
     Home: HomeScreen,
     Watchlist: WatchlistStack,
-    ElementScope: ElementScopeScreen,
+    ElementScope: ElementScopeStack,
   },
 });
 

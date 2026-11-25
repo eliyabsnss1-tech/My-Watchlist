@@ -7,6 +7,12 @@ export type WatchlistParamList = {
   Deleted: undefined;
 };
 
+export type ElementScopeParamList = {
+  ElementScopeHome: undefined;
+  /** Atomic profile of one element, e.g. { sym: "Au" }. */
+  Element: { sym: string };
+};
+
 export type RootParamList = {
   Home: undefined;
   Watchlist: undefined;

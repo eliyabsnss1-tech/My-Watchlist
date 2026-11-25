@@ -11,6 +11,8 @@ const IGNORED = [
   "apps/mobile/android/**",
   "apps/mobile/ios/**",
   "apps/mobile/src/uniwind-types.d.ts",
+  // Original ElementScope engine, kept byte-for-byte; typed through core.d.ts.
+  "apps/mobile/src/features/elementscope/engine/core.js",
 ];
 
 export default defineConfig({

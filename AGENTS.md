@@ -5,7 +5,7 @@ My Apps is a personal "home for all my apps": one React Native (Expo) app on the
 Current apps:
 
 - **Watchlist**: movies and shows to watch, with swipe actions, search, stats and recently deleted.
-- **ElementScope**: an existing website (https://eliyabsnss1-tech.github.io/elementscope/) shown inside the app.
+- **ElementScope**: "what is it made of?" for any object, material, formula, element or particle. A native port of https://eliyabsnss1-tech.github.io/elementscope/: the website's engine is kept as-is in `features/elementscope/engine/core.js` (typed by `core.d.ts`) and its SVG pictures are drawn with `SvgCss`; the screens are React Native.
 
 The repo is a pnpm monorepo driven by Vite+ (`vp`). The phone app is `apps/mobile`. Shared, UI-free logic lives in `packages/`. A feature starts as a folder in `apps/mobile/src/features/<name>` and becomes a package only when a second app needs it.
 
