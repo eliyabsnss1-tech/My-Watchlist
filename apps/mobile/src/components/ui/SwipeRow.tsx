@@ -5,6 +5,7 @@ import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -37,13 +38,16 @@ const markSwipe = () => {
 /** True right after a row was dragged, so the release doesn't also count as a tap. */
 export const swipedRecently = (): boolean => performance.now() - lastSwipeAt < 450;
 
-// Deliberately firm, so scrolling the list doesn't trigger a swipe by accident.
-const FLING_VELOCITY = 1100; // px/s
+// Firm on purpose: the row resists (moves a fraction of the finger) until the finger passes
+// `commitDistance`, then pops out to the finger. Letting go before that snaps it back.
+const RESIST = 0.3;
+const FLING_VELOCITY = 1400; // px/s, a hard flick past most of the distance also counts
 const START_DISTANCE = 26;
 const commitDistance = (width: number) => {
   "worklet";
-  return Math.min(170, width * 0.42);
+  return Math.min(160, width * 0.4);
 };
+const POP = { duration: 140 };
 // Built once here: the gesture callbacks run on the UI thread and can't call plain JS helpers.
 const SNAP_BACK = Easing.bezier(...motion.emphasizedDecelerate);
 const FLY_OFF = Easing.bezier(...motion.standardDecelerate);
@@ -70,7 +74,10 @@ function ActionLabel({
 }
 
 export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowProps) {
-  const x = useSharedValue(0);
+  const drag = useSharedValue(0);
+  const pop = useSharedValue(0);
+  // What the row shows: a resisted fraction of the finger, and the full finger once popped.
+  const x = useDerivedValue(() => drag.value * (RESIST + (1 - RESIST) * pop.value));
   const width = useSharedValue(360);
   const height = useSharedValue(-1);
   const measured = useSharedValue(0);
@@ -82,7 +89,7 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
       onLaunch?.(direction, { x: x + w / 2, y: y + h / 2 }),
     );
   const commit = (direction: "right" | "left") => onSwipe(direction);
-  const buzz = () => haptic("light");
+  const buzz = () => haptic("medium");
 
   const pan = usePanGesture({
     activeOffsetX: [-START_DISTANCE, START_DISTANCE],
@@ -93,10 +100,11 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
     },
     onUpdate: (e) => {
       "worklet";
-      x.value = e.translationX;
+      drag.value = e.translationX;
       const nowArmed = Math.abs(e.translationX) > commitDistance(width.value);
       if (nowArmed !== armed.value) {
         armed.value = nowArmed;
+        pop.value = withTiming(nowArmed ? 1 : 0, POP);
         if (nowArmed) scheduleOnRN(buzz);
       }
     },
@@ -105,10 +113,13 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
       const tx = e.translationX;
       const v = e.velocityX;
       const flung =
-        Math.abs(v) > FLING_VELOCITY && Math.abs(tx) > 80 && Math.sign(v) === Math.sign(tx);
+        Math.abs(v) > FLING_VELOCITY &&
+        Math.abs(tx) > commitDistance(width.value) * 0.7 &&
+        Math.sign(v) === Math.sign(tx);
       armed.value = false;
       if (e.canceled || !(Math.abs(tx) > commitDistance(width.value) || flung)) {
-        x.value = withTiming(0, { duration: 300, easing: SNAP_BACK });
+        drag.value = withTiming(0, { duration: 320, easing: SNAP_BACK });
+        pop.value = withTiming(0, POP);
         return;
       }
       scheduleOnRN(markSwipe);
@@ -117,7 +128,8 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
       const target = Math.sign(tx) * (width.value + 20);
       const remaining = Math.abs(target - tx);
       const fly = Math.min(220, Math.max(110, (remaining / Math.max(Math.abs(v), 1500)) * 1000));
-      x.value = withTiming(target, { duration: fly, easing: FLY_OFF }, () => {
+      pop.value = withTiming(1, POP);
+      drag.value = withTiming(target, { duration: fly, easing: FLY_OFF }, () => {
         height.value = measured.value;
         height.value = withTiming(0, { duration: 200, easing: COLLAPSE }, () => {
           scheduleOnRN(commit, direction);
@@ -138,6 +150,10 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
     opacity: x.value < 0 ? 1 : 0,
     backgroundColor: left.color,
   }));
+  const labelPop = useAnimatedStyle(() => ({
+    opacity: 0.55 + 0.45 * pop.value,
+    transform: [{ scale: 0.9 + 0.2 * pop.value }],
+  }));
 
   return (
     <Animated.View
@@ -155,7 +171,9 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
           rightBg,
         ]}
       >
-        <ActionLabel action={right} align="start" />
+        <Animated.View style={[{ alignSelf: "flex-start" }, labelPop]}>
+          <ActionLabel action={right} align="start" />
+        </Animated.View>
       </Animated.View>
       <Animated.View
         style={[
@@ -169,7 +187,9 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
           leftBg,
         ]}
       >
-        <ActionLabel action={left} align="end" />
+        <Animated.View style={[{ alignSelf: "flex-end" }, labelPop]}>
+          <ActionLabel action={left} align="end" />
+        </Animated.View>
       </Animated.View>
       <GestureDetector gesture={pan}>
         <Animated.View style={rowStyle}>{children}</Animated.View>
