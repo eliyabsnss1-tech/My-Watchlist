@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "uniwind";
+
+/* Deep blue, rounded. Keep in step with src/theme.ts (used where JS needs raw colors). */
+@theme {
+  --color-bg: #050d24;
+  --color-surface: #0b1838;
+  --color-surface-2: #12224a;
+  --color-surface-3: #1a2f5e;
+  --color-line: #1f3566;
+  --color-ink: #eef3ff;
+  --color-muted: #8fa2cc;
+  --color-primary: #3b7cff;
+  --color-primary-strong: #2a62e8;
+  --color-on-primary: #ffffff;
+  --color-accent: #7cc6ff;
+  --color-ok: #34d399;
+  --color-danger: #ff6b81;
+  --color-star: #ffc857;
+
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+}

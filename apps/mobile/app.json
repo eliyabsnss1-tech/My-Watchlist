@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "My Apps",
+    "slug": "my-apps",
+    "scheme": "myapps",
+    "version": "1.0.0",
+    "runtimeVersion": { "policy": "appVersion" },
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#050d24",
+    "splash": {
+      "backgroundColor": "#050d24"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.myapps.home",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b1838",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "reactCompiler": true
+    },
+    "plugins": ["expo-sqlite", "expo-sharing", "expo-image"]
+  }
+}

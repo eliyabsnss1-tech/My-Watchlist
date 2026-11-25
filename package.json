@@ -1,0 +1,26 @@
+{
+  "name": "my-apps",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "vp config --no-agent",
+    "dev": "pnpm --filter mobile dev",
+    "web": "pnpm --filter mobile web",
+    "typecheck": "vp run -r typecheck",
+    "lint": "vp lint --report-unused-disable-directives",
+    "fmt": "vp fmt",
+    "check": "vp check",
+    "test": "vp run -r test",
+    "sync:repos": "node scripts/sync-repos.ts"
+  },
+  "devDependencies": {
+    "@effect/language-service": "catalog:",
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1"
+  },
+  "packageManager": "pnpm@12.23.0"
+}
