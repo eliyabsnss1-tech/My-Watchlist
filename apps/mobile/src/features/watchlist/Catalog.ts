@@ -77,6 +77,7 @@ const TmdbDetails = Schema.Struct({
   next_episode_to_air: opt(Schema.Struct({ air_date: opt(Schema.String) })),
   last_episode_to_air: opt(Schema.Struct({ runtime: opt(Schema.Number) })),
   genres: opt(Schema.Array(Schema.Struct({ name: Schema.String }))),
+  belongs_to_collection: opt(Schema.Struct({ id: Schema.Number, name: opt(Schema.String) })),
   videos: opt(
     Schema.Struct({
       results: Schema.Array(
@@ -192,7 +193,10 @@ const fromTmdbDetails = (
     prov: availability(d, region),
     refreshed: now,
   };
-  if (type === "movie") return { ...base, runtime: d.runtime ?? 0 };
+  if (type === "movie") {
+    const c = d.belongs_to_collection;
+    return { ...base, runtime: d.runtime ?? 0, coll: c ? { id: c.id, name: c.name ?? "" } : null };
+  }
   return {
     ...base,
     runtime: d.episode_run_time?.[0] ?? d.last_episode_to_air?.runtime ?? 0,

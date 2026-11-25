@@ -67,4 +67,34 @@ describe("watchlist list", () => {
     assert.strictEqual(s.watched, 1);
     assert.strictEqual(s.quickPicks[0]?.key, "m");
   });
+
+  it("groups movies from the same series and leaves look-alike names apart", () => {
+    const items = [
+      title("Scary Movie 4", { date: "2006-04-12" }),
+      title("Inception"),
+      title("Scary Movie", { date: "2000-07-07" }),
+      title("Up"),
+      title("Up in the Air"),
+      title("The Matrix", { date: "1999-03-31" }),
+      title("The Matrix Reloaded", { date: "2003-05-15" }),
+      title("Frozen II"),
+      title("Frozen"),
+      title("Dune", { coll: { id: 7, name: "Dune Collection" } }),
+      title("Dune: Part Two", { coll: { id: 7, name: "Dune Collection" } }),
+      title("Scary Movie 3", { type: "tv" }),
+    ];
+    const groups = List.groupSeries(items).map((g) => g.map((x) => x.title));
+    assert.deepStrictEqual(groups, [
+      ["Scary Movie", "Scary Movie 4"],
+      ["Inception"],
+      ["Up"],
+      ["Up in the Air"],
+      ["The Matrix", "The Matrix Reloaded"],
+      ["Frozen II", "Frozen"],
+      ["Dune", "Dune: Part Two"],
+      ["Scary Movie 3"],
+    ]);
+    assert.strictEqual(List.seriesName(List.groupSeries(items)[0]!), "Scary Movie");
+    assert.strictEqual(List.seriesName(List.groupSeries(items)[6]!), "Dune");
+  });
 });

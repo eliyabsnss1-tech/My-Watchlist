@@ -16,7 +16,7 @@ import { Pressable, Text, View } from "react-native";
 import { AppText } from "../../components/ui/AppText";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Poster } from "../../components/ui/Poster";
-import { Sheet } from "../../components/ui/Sheet";
+import { DragSheet } from "../../components/ui/DragSheet";
 import { Surface } from "../../components/ui/Surface";
 import { fmtDuration, fmtRuntime, monthDay, nowMillis, todayIso } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
@@ -64,13 +64,13 @@ export function StatsSheet() {
   const list = useAtomValue(listAtom);
   if (!list.length) {
     return (
-      <Sheet title="Your watchlist in numbers">
+      <DragSheet title="Your watchlist in numbers">
         <EmptyState
           icon={Hourglass}
           title="No numbers yet"
           body="Add a movie or show and your stats show up here."
         />
-      </Sheet>
+      </DragSheet>
     );
   }
   const s = computeStats(list, todayIso(), nowMillis());
@@ -79,7 +79,7 @@ export function StatsSheet() {
   const open = (key: string) => navigation.navigate("Details", { key });
 
   return (
-    <Sheet title="Your watchlist in numbers">
+    <DragSheet title="Your watchlist in numbers">
       <LinearGradient
         colors={["#4d8bff", "#1a3a9c"]}
         start={{ x: 0, y: 0 }}
@@ -228,6 +228,6 @@ export function StatsSheet() {
           info, so times may be a little low. Show time = episodes × episode length.
         </AppText>
       ) : null}
-    </Sheet>
+    </DragSheet>
   );
 }

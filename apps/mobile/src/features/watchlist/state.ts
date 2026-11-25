@@ -108,7 +108,11 @@ export const refreshStaleAtom = runtime.atom((get) =>
         if (x.src === "tvmaze") return !x.refreshed || now - x.refreshed > WEEK;
         return (
           !!settings.tmdbKey &&
-          (!x.prov || x.prov.region !== settings.region || !x.refreshed || now - x.refreshed > WEEK)
+          (!x.prov ||
+            x.prov.region !== settings.region ||
+            !x.refreshed ||
+            now - x.refreshed > WEEK ||
+            (x.type === "movie" && x.coll === undefined))
         );
       })
       .slice(0, 12);

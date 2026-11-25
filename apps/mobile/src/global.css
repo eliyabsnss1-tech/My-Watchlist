@@ -3,11 +3,11 @@
 
 /* Deep blue, rounded. Keep in step with src/theme.ts (used where JS needs raw colors). */
 @theme {
-  --color-bg: #050d24;
-  --color-surface: #0b1838;
-  --color-surface-2: #12224a;
-  --color-surface-3: #1a2f5e;
-  --color-line: #1f3566;
+  --color-bg: #02050d;
+  --color-surface: #08101f;
+  --color-surface-2: #0e1830;
+  --color-surface-3: #152241;
+  --color-line: #1a2950;
   --color-ink: #eef3ff;
   --color-muted: #8fa2cc;
   --color-primary: #3b7cff;

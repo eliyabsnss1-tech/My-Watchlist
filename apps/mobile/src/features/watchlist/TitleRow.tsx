@@ -104,18 +104,17 @@ export function TitleRow({ item, settings, onOpen, onToggle }: TitleRowProps) {
           </Text>
         </View>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={item.watched ? "Mark as not watched" : "Mark as watched"}
-        hitSlop={6}
-        onPress={onToggle}
-        className={cn(
-          "size-10 items-center justify-center rounded-full",
-          item.watched ? "bg-ok" : "bg-surface-2",
-        )}
-      >
-        <Check size={20} color={item.watched ? "#032417" : colors.ink} strokeWidth={2.4} />
-      </Pressable>
+      {item.watched ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Mark as watched"
+          hitSlop={6}
+          onPress={onToggle}
+          className="size-10 items-center justify-center rounded-full bg-surface-2"
+        >
+          <Check size={20} color={colors.ink} strokeWidth={2.4} />
+        </Pressable>
+      )}
     </Pressable>
   );
 }

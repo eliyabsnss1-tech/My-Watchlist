@@ -72,13 +72,21 @@ export function SettingsScreen() {
   };
 
   const checkUpdates = async () => {
-    if (!Updates.isEnabled)
-      return info("Updates work in the installed app", "Not in Expo Go or the browser");
-    const check = await Updates.checkForUpdateAsync();
-    if (!check.isAvailable) return info("You have the latest version");
-    info("Downloading update…");
-    await Updates.fetchUpdateAsync();
-    await Updates.reloadAsync();
+    // Expo Go reports updates as enabled but throws on checkForUpdateAsync.
+    if (__DEV__ || !Updates.isEnabled)
+      return info(
+        "Updates work in the installed app",
+        "In Expo Go, changes load from your computer",
+      );
+    try {
+      const check = await Updates.checkForUpdateAsync();
+      if (!check.isAvailable) return info("You have the latest version");
+      info("Downloading update…");
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    } catch {
+      info("Couldn't check for updates right now");
+    }
   };
 
   return (

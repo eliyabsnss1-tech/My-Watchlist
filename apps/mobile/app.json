@@ -4,13 +4,15 @@
     "slug": "my-apps",
     "scheme": "myapps",
     "version": "1.0.0",
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#050d24",
+    "backgroundColor": "#02050d",
     "splash": {
-      "backgroundColor": "#050d24"
+      "backgroundColor": "#02050d"
     },
     "ios": {
       "supportsTablet": true
@@ -31,6 +33,9 @@
     "experiments": {
       "reactCompiler": true
     },
-    "plugins": ["expo-sqlite", "expo-sharing", "expo-image"]
+    "plugins": ["expo-sqlite", "expo-sharing", "expo-image"],
+    "extra": {
+      "supportsRTL": false
+    }
   }
 }

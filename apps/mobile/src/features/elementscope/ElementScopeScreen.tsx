@@ -1,14 +1,13 @@
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { ArrowRight, Search } from "lucide-react-native";
+import { Search } from "lucide-react-native";
 import { useRef } from "react";
 import { Keyboard, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppBar } from "../../components/ui/AppBar";
-import { IconButton } from "../../components/ui/IconButton";
 import { Screen } from "../../components/ui/Screen";
 import { TextField } from "../../components/ui/TextField";
 import type { ElementScopeParamList } from "../../navigation-types";
@@ -50,9 +49,8 @@ export function ElementScopeScreen() {
   return (
     <Screen>
       <AppBar title="ElementScope" />
-      <View className="flex-row items-center gap-2 px-4 pb-3">
+      <View className="px-4 pb-3">
         <TextField
-          className="flex-1"
           icon={Search}
           value={input}
           onChangeText={(text) => {
@@ -66,7 +64,6 @@ export function ElementScopeScreen() {
           autoCorrect={false}
           accessibilityLabel="What is it made of?"
         />
-        <IconButton icon={ArrowRight} label="Search" tone="primary" onPress={() => run(input)} />
       </View>
       <ScrollView
         ref={scroll}

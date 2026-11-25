@@ -48,6 +48,8 @@ export const CatalogItem = Schema.Struct({
   channel: Schema.optional(Schema.String),
   prov: Schema.optional(Availability),
   refreshed: Schema.optional(Schema.Number),
+  /** The movie series (TMDB collection) a movie belongs to; null once TMDB said it has none. */
+  coll: Schema.optional(Schema.NullOr(Schema.Struct({ id: Schema.Number, name: Schema.String }))),
 });
 export type CatalogItem = typeof CatalogItem.Type;
 

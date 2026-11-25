@@ -36,7 +36,10 @@ const markSwipe = () => {
 export const swipedRecently = (): boolean => performance.now() - lastSwipeAt < 450;
 
 const FLING_VELOCITY = 500; // px/s, a deliberate flick (Android's swipe-to-dismiss uses a similar escape velocity)
-const ease = (curve: readonly [number, number, number, number]) => Easing.bezier(...curve);
+// Built once here: the gesture callbacks run on the UI thread and can't call plain JS helpers.
+const SNAP_BACK = Easing.bezier(...motion.emphasizedDecelerate);
+const FLY_OFF = Easing.bezier(...motion.standardDecelerate);
+const COLLAPSE = Easing.bezier(...motion.standard);
 
 function ActionLabel({
   action,
@@ -92,7 +95,7 @@ export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
         Math.abs(v) > FLING_VELOCITY && Math.abs(tx) > 30 && Math.sign(v) === Math.sign(tx);
       armed.value = false;
       if (e.canceled || !(Math.abs(tx) > Math.min(110, width.value * 0.28) || flung)) {
-        x.value = withTiming(0, { duration: 300, easing: ease(motion.emphasizedDecelerate) });
+        x.value = withTiming(0, { duration: 300, easing: SNAP_BACK });
         return;
       }
       scheduleOnRN(markSwipe);
@@ -100,16 +103,12 @@ export function SwipeRow({ right, left, onSwipe, children }: SwipeRowProps) {
       const target = Math.sign(tx) * (width.value + 20);
       const remaining = Math.abs(target - tx);
       const fly = Math.min(220, Math.max(110, (remaining / Math.max(Math.abs(v), 1500)) * 1000));
-      x.value = withTiming(
-        target,
-        { duration: fly, easing: ease(motion.standardDecelerate) },
-        () => {
-          height.value = measured.value;
-          height.value = withTiming(0, { duration: 200, easing: ease(motion.standard) }, () => {
-            scheduleOnRN(commit, direction);
-          });
-        },
-      );
+      x.value = withTiming(target, { duration: fly, easing: FLY_OFF }, () => {
+        height.value = measured.value;
+        height.value = withTiming(0, { duration: 200, easing: COLLAPSE }, () => {
+          scheduleOnRN(commit, direction);
+        });
+      });
     },
   });
 

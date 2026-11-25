@@ -64,3 +64,66 @@ export const importTitles = (
     .filter((x) => !known.has(x.key));
   return { list: [...list, ...incoming], added: incoming.length };
 };
+
+/** A title's name without sequel markers: "Frozen II" → "frozen", "Dune: Part Two" → "dune". */
+export const seriesBase = (title: string): string =>
+  title
+    .toLowerCase()
+    .replace(/\s*\(\d{4}\)\s*$/, "")
+    .split(/\s*[:–—]\s*|\s+-\s+/)[0]!
+    .replace(/[^\p{L}\p{N}\s&']/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\s+(part|chapter|vol|volume|episode)\s+\S+$/, "")
+    .replace(/\s+(\d{1,2}|ii|iii|iv|v|vi|vii|viii|ix|x)$/, "")
+    .replace(/^the /, "")
+    .trim();
+
+// "matrix" groups "matrix reloaded"; a short single word like "up" must not group "up in the air".
+const prefixOk = (base: string) => base.includes(" ") || base.length >= 5;
+
+/**
+ * Movies from the same series (a trilogy, a franchise) become one group, kept where its first
+ * title sits in `items`. TMDB's collection decides when known; otherwise matching names do.
+ */
+export const groupSeries = (items: ReadonlyArray<SavedTitle>): Array<ReadonlyArray<SavedTitle>> => {
+  const movies = items.filter((x) => x.type === "movie");
+  const groupOf = new Map<SavedTitle, string>();
+  const collOfBase = new Map<string, string>();
+  for (const m of movies) {
+    if (!m.coll) continue;
+    groupOf.set(m, `c${m.coll.id}`);
+    const b = seriesBase(m.title);
+    if (b.length >= 3 && !collOfBase.has(b)) collOfBase.set(b, `c${m.coll.id}`);
+  }
+  const rest = movies
+    .filter((m) => !groupOf.has(m))
+    .map((m) => ({ m, base: seriesBase(m.title) }))
+    .filter((x) => x.base.length >= 3);
+  const bases = [...new Set([...rest.map((x) => x.base), ...collOfBase.keys()])].sort(
+    (a, b) => a.length - b.length,
+  );
+  for (const { m, base } of rest) {
+    const root = bases.find((b) => b === base || (prefixOk(b) && base.startsWith(`${b} `)))!;
+    groupOf.set(m, collOfBase.get(root) ?? `n${root}`);
+  }
+  const groups = new Map<string, Array<SavedTitle>>();
+  for (const item of items) {
+    const g = groupOf.get(item) ?? item.key;
+    groups.set(g, [...(groups.get(g) ?? []), item]);
+  }
+  return [...groups.values()].map((g) =>
+    g.length > 1 ? [...g].sort((a, b) => (a.date || "9").localeCompare(b.date || "9")) : g,
+  );
+};
+
+/** "Scary Movie series", from TMDB's collection name or the shortest title. */
+export const seriesName = (group: ReadonlyArray<SavedTitle>): string => {
+  const named = group.find((x) => x.coll?.name)?.coll?.name;
+  if (named) return named.replace(/\s+collection$/i, "");
+  const shortest = [...group].sort((a, b) => a.title.length - b.title.length)[0]!.title;
+  return shortest
+    .split(/\s*[:–—]\s*|\s+-\s+/)[0]!
+    .replace(/\s+(\d{1,2}|II|III|IV|V|VI)$/, "")
+    .trim();
+};

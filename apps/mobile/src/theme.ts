@@ -1,11 +1,11 @@
 // Raw values for places that can't take a className (navigation, icons, gradients, Reanimated).
 // Keep in step with src/global.css.
 export const colors = {
-  bg: "#050d24",
-  surface: "#0b1838",
-  surface2: "#12224a",
-  surface3: "#1a2f5e",
-  line: "#1f3566",
+  bg: "#02050d",
+  surface: "#08101f",
+  surface2: "#0e1830",
+  surface3: "#152241",
+  line: "#1a2950",
   ink: "#eef3ff",
   muted: "#8fa2cc",
   primary: "#3b7cff",
@@ -15,7 +15,7 @@ export const colors = {
   ok: "#34d399",
   danger: "#ff6b81",
   star: "#ffc857",
-  scrim: "rgba(2, 6, 20, 0.6)",
+  scrim: "rgba(0, 2, 8, 0.7)",
 } as const;
 
 // Material 3 motion tokens (Android's standard easing curves).

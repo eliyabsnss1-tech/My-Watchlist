@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { IconButton } from "../../components/ui/IconButton";
 import { Poster } from "../../components/ui/Poster";
-import { Sheet } from "../../components/ui/Sheet";
+import { DragSheet } from "../../components/ui/DragSheet";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
 import { haptic } from "../../lib/haptics";
 import { ago } from "../../lib/time";
@@ -21,7 +21,7 @@ export function DeletedSheet() {
   const setSnack = useAtomSet(snackAtom);
 
   return (
-    <Sheet
+    <DragSheet
       title="Recently deleted"
       subtitle={`The last ${DELETED_MAX} titles you deleted. Tap ↺ to put one back where it was.`}
     >
@@ -76,6 +76,6 @@ export function DeletedSheet() {
           body="Titles you delete show up here for a while."
         />
       )}
-    </Sheet>
+    </DragSheet>
   );
 }

@@ -26,6 +26,13 @@ const sheet: NativeStackNavigationOptions = {
   contentStyle: { backgroundColor: colors.bg },
 };
 
+/** Drawn by the screen itself (DragSheet): drag down from anywhere to close. */
+const dragSheet: NativeStackNavigationOptions = {
+  presentation: "transparentModal",
+  animation: "none",
+  contentStyle: { backgroundColor: "transparent" },
+};
+
 const WatchlistStack = createNativeStackNavigator({
   screenOptions: {
     headerShown: false,
@@ -37,8 +44,8 @@ const WatchlistStack = createNativeStackNavigator({
     Settings: SettingsScreen,
     Search: { screen: SearchSheet, options: sheet },
     Details: { screen: DetailsSheet, options: sheet },
-    Stats: { screen: StatsSheet, options: sheet },
-    Deleted: { screen: DeletedSheet, options: sheet },
+    Stats: { screen: StatsSheet, options: dragSheet },
+    Deleted: { screen: DeletedSheet, options: dragSheet },
   },
 });
 

@@ -15,6 +15,7 @@ import {
   Trash2,
   Tv,
 } from "lucide-react-native";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -28,6 +29,8 @@ import { fmtRuntime } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
 import { colors } from "../../theme";
 import * as List from "./list";
+import type { SavedTitle } from "./model";
+import { SeriesRow } from "./SeriesRow";
 import { listAtom, refreshStaleAtom, segmentAtom, settingsAtom } from "./state";
 import { TitleRow } from "./TitleRow";
 import { useWatchlistActions } from "./useWatchlistActions";
@@ -47,12 +50,44 @@ export function WatchlistScreen() {
 
   const todo = list.filter((x) => !x.watched).length;
   const items = List.visible(list, segment, settings.sort);
+  const groups = List.groupSeries(items);
+  const [openSeries, setOpenSeries] = useState<ReadonlySet<string>>(new Set());
+  const toggleSeries = (id: string) =>
+    setOpenSeries((s) => {
+      const next = new Set(s);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const minutes = items
     .filter((x) => x.type === "movie" && !x.watched)
     .reduce((s, x) => s + x.runtime, 0);
   // To watch: right = watched, left = delete. Watched: right = delete, left = back to To watch.
   const right = segment === "todo" ? WATCHED : DELETE;
   const left = segment === "todo" ? DELETE : UNWATCH;
+
+  const row = (item: SavedTitle) => (
+    <SwipeRow
+      key={item.key}
+      right={right}
+      left={left}
+      onSwipe={(dir) => {
+        const isDelete = item.watched ? dir === "right" : dir === "left";
+        if (isDelete) actions.remove(item);
+        else actions.toggleWatched(item, true);
+      }}
+    >
+      <TitleRow
+        item={item}
+        settings={settings}
+        onOpen={() => {
+          if (!swipedRecently()) navigation.navigate("Details", { key: item.key });
+        }}
+        onToggle={() => {
+          if (!swipedRecently()) actions.toggleWatched(item, true);
+        }}
+      />
+    </SwipeRow>
+  );
 
   return (
     <Screen>
@@ -93,8 +128,8 @@ export function WatchlistScreen() {
         />
       ) : null}
       <LegendList
-        data={items}
-        keyExtractor={(item) => item.key}
+        data={groups}
+        keyExtractor={(g) => (g.length > 1 ? `series:${List.seriesName(g)}` : g[0]!.key)}
         estimatedItemSize={106}
         contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 110 }}
         ListHeaderComponent={
@@ -147,28 +182,20 @@ export function WatchlistScreen() {
             />
           )
         }
-        renderItem={({ item }) => (
-          <SwipeRow
-            right={right}
-            left={left}
-            onSwipe={(dir) => {
-              const isDelete = item.watched ? dir === "right" : dir === "left";
-              if (isDelete) actions.remove(item);
-              else actions.toggleWatched(item, true);
-            }}
-          >
-            <TitleRow
-              item={item}
-              settings={settings}
-              onOpen={() => {
-                if (!swipedRecently()) navigation.navigate("Details", { key: item.key });
-              }}
-              onToggle={() => {
-                if (!swipedRecently()) actions.toggleWatched(item, true);
-              }}
-            />
-          </SwipeRow>
-        )}
+        renderItem={({ item: g }) => {
+          if (g.length === 1) return row(g[0]!);
+          const name = List.seriesName(g);
+          return (
+            <SeriesRow
+              name={name}
+              items={g}
+              open={openSeries.has(name)}
+              onToggle={() => toggleSeries(name)}
+            >
+              {g.map(row)}
+            </SeriesRow>
+          );
+        }}
       />
       <View
         style={{ position: "absolute", left: 20, bottom: insets.bottom + 20 }}
