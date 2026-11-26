@@ -27,7 +27,10 @@ export interface SwipeRowProps {
   readonly left: SwipeAction;
   readonly onSwipe: (direction: "right" | "left") => void;
   /** As soon as a swipe is let go: the row's center on screen, for showing where it goes. */
-  readonly onLaunch?: (direction: "right" | "left", from: { x: number; y: number }) => void;
+  readonly onLaunch?: (
+    direction: "right" | "left",
+    from: { x: number; y: number; w: number; h: number },
+  ) => void;
   readonly children: ReactNode;
 }
 
@@ -87,9 +90,7 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
 
   const wrap = useRef<HostInstance>(null);
   const launch = (direction: "right" | "left") =>
-    wrap.current?.measureInWindow((x, y, w, h) =>
-      onLaunch?.(direction, { x: x + w / 2, y: y + h / 2 }),
-    );
+    wrap.current?.measureInWindow((x, y, w, h) => onLaunch?.(direction, { x, y, w, h }));
   const commit = (direction: "right" | "left") => onSwipe(direction);
   const buzz = () => haptic("medium");
 

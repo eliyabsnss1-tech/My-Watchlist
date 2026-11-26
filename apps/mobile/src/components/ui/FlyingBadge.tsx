@@ -1,39 +1,33 @@
 import type { LucideIcon } from "lucide-react-native";
-import { View } from "react-native";
+import { Text } from "react-native";
 import Animated, { Easing, withDelay, withSequence, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { motion } from "../../theme";
-import { Poster } from "./Poster";
+
+type Box = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
 
 export interface Flight {
   readonly id: number;
-  readonly from: { readonly x: number; readonly y: number };
-  /** The spot it lands on (a tab or a button), in the same coordinates as `from`. */
-  readonly target: {
-    readonly x: number;
-    readonly y: number;
-    readonly w: number;
-    readonly h: number;
-    readonly radius: number;
-  };
+  /** The swiped row, on screen. */
+  readonly from: Box;
+  /** The spot it goes into (a tab or a button), in the same coordinates. */
+  readonly target: Box & { readonly radius: number };
   readonly icon: LucideIcon;
   readonly color: string;
   readonly poster: string;
   readonly title: string;
 }
 
-const CARD_W = 46;
-const CARD_H = 69;
-const TRAVEL = 650;
-const GLOW = 700;
-// Different curves for x and y make the card travel in an arc instead of a straight line.
-const ACROSS = Easing.bezier(...motion.standard);
-const UP = Easing.bezier(...motion.emphasizedDecelerate);
+const MORPH = 560;
+const AFTER = 650;
+const SHAPE = Easing.bezier(...motion.emphasizedDecelerate);
+const MOVE = Easing.bezier(...motion.standard);
 
 /**
- * The swiped title's poster shrinks and flies to where it went; the spot it lands on then lights
- * up in the action's color and pulses, so it is clear where the title is now.
+ * The swiped row turns into the place it goes: a copy of the row in the action's color shrinks
+ * and reshapes into the tab (or the Recently deleted button), which then pulses while a "+1"
+ * rises above it.
  */
 export function FlyingBadge({
   flight,
@@ -44,51 +38,65 @@ export function FlyingBadge({
 }) {
   const { from, target, color } = flight;
   const Icon = flight.icon;
-  const toX = target.x + target.w / 2;
-  const toY = target.y + target.h / 2;
-  const card = () => {
+  // The copy is drawn at the row's size and scaled, so it can become any shape.
+  const dx = target.x + target.w / 2 - (from.x + from.w / 2);
+  const dy = target.y + target.h / 2 - (from.y + from.h / 2);
+  const sx = target.w / from.w;
+  const sy = target.h / from.h;
+  const ghost = () => {
     "worklet";
     return {
       initialValues: {
-        opacity: 1,
-        transform: [
-          { translateX: from.x },
-          { translateY: from.y },
-          { scale: 1.1 },
-          { rotate: "0deg" },
-        ],
+        opacity: 0.95,
+        transform: [{ translateX: 0 }, { translateY: 0 }, { scaleX: 1 }, { scaleY: 1 }],
       },
       animations: {
-        opacity: withDelay(TRAVEL - 100, withTiming(0, { duration: 120 })),
+        opacity: withDelay(MORPH - 60, withTiming(0, { duration: 180 })),
         transform: [
-          { translateX: withTiming(toX, { duration: TRAVEL, easing: ACROSS }) },
-          { translateY: withTiming(toY, { duration: TRAVEL, easing: UP }) },
-          { scale: withTiming(0.35, { duration: TRAVEL, easing: ACROSS }) },
-          { rotate: withTiming(from.x < toX ? "12deg" : "-12deg", { duration: TRAVEL }) },
+          { translateX: withTiming(dx, { duration: MORPH, easing: MOVE }) },
+          { translateY: withTiming(dy, { duration: MORPH, easing: SHAPE }) },
+          { scaleX: withTiming(sx, { duration: MORPH, easing: SHAPE }) },
+          { scaleY: withTiming(sy, { duration: MORPH, easing: MOVE }) },
         ],
       },
     };
   };
-  const glow = () => {
+  const pulse = () => {
     "worklet";
     return {
       initialValues: { opacity: 0, transform: [{ scale: 1 }] },
       animations: {
         opacity: withDelay(
-          TRAVEL - 80,
-          withSequence(
-            withTiming(0.9, { duration: 90 }),
-            withTiming(0.9, { duration: 260 }),
-            withTiming(0, { duration: GLOW - 350 }),
-          ),
+          MORPH - 80,
+          withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: AFTER - 80 })),
         ),
         transform: [
           {
             scale: withDelay(
-              TRAVEL - 80,
-              withSequence(withTiming(1.12, { duration: 140 }), withTiming(1, { duration: 220 })),
+              MORPH - 80,
+              withSequence(withTiming(1.15, { duration: 160 }), withTiming(1, { duration: 260 })),
             ),
           },
+        ],
+      },
+    };
+  };
+  const plusOne = () => {
+    "worklet";
+    return {
+      initialValues: { opacity: 0, transform: [{ translateY: 0 }, { scale: 0.6 }] },
+      animations: {
+        opacity: withDelay(
+          MORPH - 40,
+          withSequence(
+            withTiming(1, { duration: 120 }),
+            withTiming(1, { duration: 300 }),
+            withTiming(0, { duration: 260 }),
+          ),
+        ),
+        transform: [
+          { translateY: withDelay(MORPH - 40, withTiming(-26, { duration: 680, easing: SHAPE })) },
+          { scale: withDelay(MORPH - 40, withTiming(1, { duration: 200 })) },
         ],
       },
       callback: (finished: boolean) => {
@@ -101,7 +109,23 @@ export function FlyingBadge({
     <>
       <Animated.View
         pointerEvents="none"
-        entering={glow}
+        entering={ghost}
+        style={{
+          position: "absolute",
+          left: from.x,
+          top: from.y,
+          width: from.w,
+          height: from.h,
+          borderRadius: 28,
+          backgroundColor: `${color}66`,
+          borderWidth: 2,
+          borderColor: color,
+          opacity: 0,
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        entering={pulse}
         style={{
           position: "absolute",
           left: target.x,
@@ -111,34 +135,30 @@ export function FlyingBadge({
           borderRadius: target.radius,
           borderWidth: 2.5,
           borderColor: color,
-          backgroundColor: `${color}55`,
+          backgroundColor: `${color}40`,
           opacity: 0,
         }}
       />
       <Animated.View
         pointerEvents="none"
-        entering={card}
+        entering={plusOne}
         style={{
           position: "absolute",
-          left: -CARD_W / 2,
-          top: -CARD_H / 2,
-          width: CARD_W,
-          height: CARD_H,
+          left: target.x + target.w / 2 - 26,
+          top: target.y - 14,
+          width: 52,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: color,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
           opacity: 0,
         }}
       >
-        <View
-          style={{ borderColor: color, borderWidth: 2, borderRadius: 12, overflow: "hidden" }}
-          className="shadow-lg"
-        >
-          <Poster uri={flight.poster} title={flight.title} size="sm" />
-        </View>
-        <View
-          style={{ backgroundColor: color, position: "absolute", right: -8, top: -8 }}
-          className="size-6 items-center justify-center rounded-full"
-        >
-          <Icon size={14} color="#06102a" strokeWidth={2.8} />
-        </View>
+        <Icon size={13} color="#06102a" strokeWidth={2.8} />
+        <Text style={{ color: "#06102a", fontSize: 13, fontWeight: "800" }}>+1</Text>
       </Animated.View>
     </>
   );

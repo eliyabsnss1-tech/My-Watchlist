@@ -95,7 +95,7 @@ export function WatchlistScreen() {
   const history = useRef<HostInstance>(null);
   const [flights, setFlights] = useState<ReadonlyArray<Flight>>([]);
   const fly = async (
-    from: Point,
+    from: Rect,
     to: "todo" | "done" | "deleted",
     action: SwipeAction,
     item: SavedTitle,
@@ -119,7 +119,7 @@ export function WatchlistScreen() {
           };
     const flight: Flight = {
       id: nextFlight++,
-      from: { x: from.x - origin.x, y: from.y - origin.y },
+      from: { ...from, x: from.x - origin.x, y: from.y - origin.y },
       target: { ...target, x: target.x - origin.x, y: target.y - origin.y },
       icon: action.icon,
       color: action.color,
