@@ -1,33 +1,39 @@
 import type { LucideIcon } from "lucide-react-native";
-import { Text, View } from "react-native";
-import Animated, { Easing, withDelay, withTiming } from "react-native-reanimated";
+import { View } from "react-native";
+import Animated, { Easing, withDelay, withSequence, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { motion } from "../../theme";
+import { Poster } from "./Poster";
 
 export interface Flight {
   readonly id: number;
   readonly from: { readonly x: number; readonly y: number };
-  readonly to: { readonly x: number; readonly y: number };
+  /** The spot it lands on (a tab or a button), in the same coordinates as `from`. */
+  readonly target: {
+    readonly x: number;
+    readonly y: number;
+    readonly w: number;
+    readonly h: number;
+    readonly radius: number;
+  };
   readonly icon: LucideIcon;
   readonly color: string;
-  /** Where it went, e.g. "Watched". */
-  readonly label: string;
+  readonly poster: string;
+  readonly title: string;
 }
 
-const W = 132;
-const H = 36;
-const RING = 56;
-const TRAVEL = 720;
-const LAND = 520;
-// Different curves for x and y make the pill travel in an arc instead of a straight line.
+const CARD_W = 46;
+const CARD_H = 69;
+const TRAVEL = 650;
+const GLOW = 700;
+// Different curves for x and y make the card travel in an arc instead of a straight line.
 const ACROSS = Easing.bezier(...motion.standard);
 const UP = Easing.bezier(...motion.emphasizedDecelerate);
-const OUT = Easing.bezier(...motion.standardDecelerate);
 
 /**
- * A labelled pill that flies from a swiped row to where the title went (a tab or Recently
- * deleted), then a ring ripples out from that spot.
+ * The swiped title's poster shrinks and flies to where it went; the spot it lands on then lights
+ * up in the action's color and pulses, so it is clear where the title is now.
  */
 export function FlyingBadge({
   flight,
@@ -36,33 +42,53 @@ export function FlyingBadge({
   readonly flight: Flight;
   readonly onDone: () => void;
 }) {
-  const { from, to, color } = flight;
+  const { from, target, color } = flight;
   const Icon = flight.icon;
-  const pill = () => {
+  const toX = target.x + target.w / 2;
+  const toY = target.y + target.h / 2;
+  const card = () => {
     "worklet";
     return {
       initialValues: {
         opacity: 1,
-        transform: [{ translateX: from.x }, { translateY: from.y }, { scale: 1 }],
+        transform: [
+          { translateX: from.x },
+          { translateY: from.y },
+          { scale: 1.1 },
+          { rotate: "0deg" },
+        ],
       },
       animations: {
-        opacity: withDelay(TRAVEL - 120, withTiming(0, { duration: 160 })),
+        opacity: withDelay(TRAVEL - 100, withTiming(0, { duration: 120 })),
         transform: [
-          { translateX: withTiming(to.x, { duration: TRAVEL, easing: ACROSS }) },
-          { translateY: withTiming(to.y, { duration: TRAVEL, easing: UP }) },
-          { scale: withTiming(0.45, { duration: TRAVEL, easing: ACROSS }) },
+          { translateX: withTiming(toX, { duration: TRAVEL, easing: ACROSS }) },
+          { translateY: withTiming(toY, { duration: TRAVEL, easing: UP }) },
+          { scale: withTiming(0.35, { duration: TRAVEL, easing: ACROSS }) },
+          { rotate: withTiming(from.x < toX ? "12deg" : "-12deg", { duration: TRAVEL }) },
         ],
       },
     };
   };
-  const ring = () => {
+  const glow = () => {
     "worklet";
     return {
-      initialValues: { opacity: 0, transform: [{ scale: 0.3 }] },
+      initialValues: { opacity: 0, transform: [{ scale: 1 }] },
       animations: {
-        opacity: withDelay(TRAVEL - 120, withTiming(0.95, { duration: 80 })),
+        opacity: withDelay(
+          TRAVEL - 80,
+          withSequence(
+            withTiming(0.9, { duration: 90 }),
+            withTiming(0.9, { duration: 260 }),
+            withTiming(0, { duration: GLOW - 350 }),
+          ),
+        ),
         transform: [
-          { scale: withDelay(TRAVEL - 120, withTiming(2.2, { duration: LAND, easing: OUT })) },
+          {
+            scale: withDelay(
+              TRAVEL - 80,
+              withSequence(withTiming(1.12, { duration: 140 }), withTiming(1, { duration: 220 })),
+            ),
+          },
         ],
       },
       callback: (finished: boolean) => {
@@ -75,32 +101,43 @@ export function FlyingBadge({
     <>
       <Animated.View
         pointerEvents="none"
-        entering={ring}
+        entering={glow}
         style={{
           position: "absolute",
-          left: to.x - RING / 2,
-          top: to.y - RING / 2,
-          width: RING,
-          height: RING,
-          borderRadius: RING / 2,
-          borderWidth: 3,
+          left: target.x,
+          top: target.y,
+          width: target.w,
+          height: target.h,
+          borderRadius: target.radius,
+          borderWidth: 2.5,
           borderColor: color,
+          backgroundColor: `${color}55`,
           opacity: 0,
         }}
       />
       <Animated.View
         pointerEvents="none"
-        entering={pill}
-        style={{ position: "absolute", left: -W / 2, top: -H / 2, width: W, opacity: 0 }}
+        entering={card}
+        style={{
+          position: "absolute",
+          left: -CARD_W / 2,
+          top: -CARD_H / 2,
+          width: CARD_W,
+          height: CARD_H,
+          opacity: 0,
+        }}
       >
         <View
-          style={{ backgroundColor: color, height: H, borderRadius: H / 2 }}
-          className="flex-row items-center justify-center gap-1.5 self-center px-3.5 shadow-lg"
+          style={{ borderColor: color, borderWidth: 2, borderRadius: 12, overflow: "hidden" }}
+          className="shadow-lg"
         >
-          <Icon size={17} color="#06102a" strokeWidth={2.6} />
-          <Text numberOfLines={1} className="text-[14px] font-bold text-[#06102a]">
-            {flight.label}
-          </Text>
+          <Poster uri={flight.poster} title={flight.title} size="sm" />
+        </View>
+        <View
+          style={{ backgroundColor: color, position: "absolute", right: -8, top: -8 }}
+          className="size-6 items-center justify-center rounded-full"
+        >
+          <Icon size={14} color="#06102a" strokeWidth={2.8} />
         </View>
       </Animated.View>
     </>

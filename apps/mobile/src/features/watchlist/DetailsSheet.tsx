@@ -13,7 +13,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Poster } from "../../components/ui/Poster";
 import { DragSheet } from "../../components/ui/DragSheet";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
-import { Surface } from "../../components/ui/Surface";
 import { haptic } from "../../lib/haptics";
 import { fmtDate, fmtRuntime, isFuture, year } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
@@ -60,7 +59,7 @@ function ProviderGroup({
       {entries.map(([name, logo]) => (
         <View
           key={name}
-          className="flex-row items-center gap-1.5 rounded-full bg-surface py-1 pl-1 pr-3"
+          className="flex-row items-center gap-1.5 rounded-full bg-black/30 py-1 pl-1 pr-3"
         >
           {logo ? (
             <Image
@@ -85,13 +84,13 @@ function Backdrop({ uri }: { readonly uri: string }) {
     >
       <Image
         source={{ uri }}
-        blurRadius={36}
+        blurRadius={22}
         contentFit="cover"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.75 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
       <LinearGradient
-        colors={["rgba(2,5,13,0.35)", "rgba(2,5,13,0.78)", "rgba(2,5,13,0.92)"]}
-        locations={[0, 0.35, 1]}
+        colors={["rgba(2,5,13,0.05)", "rgba(2,5,13,0.5)", "rgba(2,5,13,0.72)"]}
+        locations={[0, 0.4, 1]}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
     </View>
@@ -202,7 +201,7 @@ export function DetailsSheet() {
           ) : null}
           <View className="mt-2.5 flex-row flex-wrap gap-1.5">
             {it.genres.map((g) => (
-              <View key={g} className="rounded-full bg-surface-2 px-3 py-1">
+              <View key={g} className="rounded-full bg-black/30 px-3 py-1">
                 <Text className="text-[12px] text-muted">{g}</Text>
               </View>
             ))}
@@ -308,14 +307,14 @@ export function DetailsSheet() {
       ) : null}
 
       <Section title="Details">
-        <Surface tone="card" className="gap-2.5">
+        <View className="gap-2.5 rounded-3xl bg-black/30 p-4">
           {facts.map(([k, v]) => (
             <View key={k} className="flex-row justify-between gap-4">
               <Text className="text-[14px] text-muted">{k}</Text>
               <Text className="flex-1 text-right text-[14px] text-ink">{v}</Text>
             </View>
           ))}
-        </Surface>
+        </View>
       </Section>
 
       <MoreLikeThis itemKey={it.key} />

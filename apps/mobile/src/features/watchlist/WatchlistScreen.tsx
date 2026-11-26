@@ -32,7 +32,7 @@ import * as List from "./list";
 import type { SavedTitle } from "./model";
 import { SeriesRow } from "./SeriesRow";
 import { listAtom, refreshStaleAtom, segmentAtom, settingsAtom } from "./state";
-import { TitleRow } from "./TitleRow";
+import { posterUri, TitleRow } from "./TitleRow";
 import { useWatchlistActions } from "./useWatchlistActions";
 
 const DELETE: SwipeAction = { label: "Delete", icon: Trash2, color: colors.danger };
@@ -93,23 +93,37 @@ export function WatchlistScreen() {
   const tabs = useRef<HostInstance>(null);
   const history = useRef<HostInstance>(null);
   const [flights, setFlights] = useState<ReadonlyArray<Flight>>([]);
-  const fly = async (from: Point, to: "todo" | "done" | "deleted", action: SwipeAction) => {
-    const [origin, target] = await Promise.all([
+  const fly = async (
+    from: Point,
+    to: "todo" | "done" | "deleted",
+    action: SwipeAction,
+    item: SavedTitle,
+  ) => {
+    const [origin, box] = await Promise.all([
       measure(layer),
       measure(to === "deleted" ? history : tabs),
     ]);
-    if (!origin || !target) return;
-    const x =
+    if (!origin || !box) return;
+    // The tab bar has 4px padding around two equal halves; the history button is a circle.
+    const half = (box.w - 8) / 2;
+    const target =
       to === "deleted"
-        ? target.x + target.w / 2
-        : target.x + target.w * (to === "todo" ? 0.25 : 0.75);
+        ? { x: box.x, y: box.y, w: box.w, h: box.h, radius: box.w / 2 }
+        : {
+            x: box.x + 4 + (to === "done" ? half : 0),
+            y: box.y + 4,
+            w: half,
+            h: box.h - 8,
+            radius: (box.h - 8) / 2,
+          };
     const flight: Flight = {
       id: nextFlight++,
       from: { x: from.x - origin.x, y: from.y - origin.y },
-      to: { x: x - origin.x, y: target.y + target.h / 2 - origin.y },
+      target: { ...target, x: target.x - origin.x, y: target.y - origin.y },
       icon: action.icon,
       color: action.color,
-      label: to === "deleted" ? "Deleted" : to === "done" ? "Watched" : "To watch",
+      poster: posterUri(item),
+      title: item.title,
     };
     setFlights((f) => [...f, flight]);
   };
@@ -125,6 +139,7 @@ export function WatchlistScreen() {
           from,
           isDelete ? "deleted" : item.watched ? "todo" : "done",
           dir === "right" ? right : left,
+          item,
         );
       }}
       onSwipe={(dir) => {

@@ -50,7 +50,7 @@ export function DragSheet({
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { height: screen } = useWindowDimensions();
-  const height = Math.round(screen * 0.94);
+  const height = Math.round(screen * 0.87);
   const y = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const startAt = useSharedValue(0);
