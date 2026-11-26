@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Clock, Layers, Star, type LucideIcon } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
@@ -71,17 +72,28 @@ const WHERE_COLOR: Readonly<Record<Where["kind"], string>> = {
   unknown: colors.muted,
 };
 
-/** A faint wash of the poster's colors behind the row; the title page shows them fully. */
+/** The poster's colors glowing from the left of the row and fading to black on the right. */
 export function PosterTint({ uri }: { readonly uri: string }) {
   if (!uri) return null;
   return (
-    <Image
-      source={{ uri }}
-      blurRadius={24}
-      contentFit="cover"
+    <View
       pointerEvents="none"
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.22 }}
-    />
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <Image
+        source={{ uri }}
+        blurRadius={30}
+        contentFit="cover"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.7 }}
+      />
+      <LinearGradient
+        colors={["rgba(2,5,13,0.1)", "rgba(2,5,13,0.75)", "rgba(2,5,13,1)"]}
+        locations={[0, 0.5, 0.92]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+    </View>
   );
 }
 

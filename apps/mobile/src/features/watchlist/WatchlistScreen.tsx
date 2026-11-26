@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 import { useRef, useState, type RefObject } from "react";
 import { Pressable, Text, View, type HostInstance } from "react-native";
+import Animated, { Easing, SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppBar } from "../../components/ui/AppBar";
@@ -27,7 +28,7 @@ import { Screen } from "../../components/ui/Screen";
 import { Segmented } from "../../components/ui/Segmented";
 import { SwipeRow, swipedRecently, type SwipeAction } from "../../components/ui/SwipeRow";
 import type { WatchlistParamList } from "../../navigation-types";
-import { colors } from "../../theme";
+import { colors, motion } from "../../theme";
 import * as List from "./list";
 import type { SavedTitle } from "./model";
 import { SeriesRow } from "./SeriesRow";
@@ -199,71 +200,80 @@ export function WatchlistScreen() {
           />
         </View>
       ) : null}
-      <LegendList
-        onScrollBeginDrag={scrollStarted}
-        onScrollEndDrag={scrollStopped}
-        onMomentumScrollBegin={scrollStarted}
-        onMomentumScrollEnd={scrollStopped}
-        data={groups}
-        keyExtractor={(g) => (g.length > 1 ? `series:${List.seriesName(g)}` : g[0]!.key)}
-        estimatedItemSize={106}
-        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 110 }}
-        ListHeaderComponent={
-          <View>
-            {!settings.tmdbKey ? (
-              <Pressable
-                onPress={() => navigation.navigate("Settings")}
-                className="mx-3 mb-2 flex-row items-center gap-3 rounded-3xl bg-surface-2 px-4 py-3 active:opacity-80"
-              >
-                <KeyRound size={20} color={colors.accent} />
-                <Text className="flex-1 text-[14px] leading-5 text-ink">
-                  Add a free TMDB key to see where each title streams in your country.
-                </Text>
-                <ChevronRight size={18} color={colors.muted} />
-              </Pressable>
-            ) : null}
-          </View>
-        }
-        ListEmptyComponent={
-          list.length ? (
-            segment === "todo" ? (
-              <EmptyState
-                icon={Tv}
-                title="Everything is watched"
-                body="Nice. Add something new with the + button."
-              />
+      {/* The list slides in from the side of the tab you moved to. */}
+      <Animated.View
+        key={segment}
+        style={{ flex: 1 }}
+        entering={(segment === "done" ? SlideInRight : SlideInLeft)
+          .duration(320)
+          .easing(Easing.bezierFn(...motion.emphasizedDecelerate))}
+      >
+        <LegendList
+          onScrollBeginDrag={scrollStarted}
+          onScrollEndDrag={scrollStopped}
+          onMomentumScrollBegin={scrollStarted}
+          onMomentumScrollEnd={scrollStopped}
+          data={groups}
+          keyExtractor={(g) => (g.length > 1 ? `series:${List.seriesName(g)}` : g[0]!.key)}
+          estimatedItemSize={106}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 110 }}
+          ListHeaderComponent={
+            <View>
+              {!settings.tmdbKey ? (
+                <Pressable
+                  onPress={() => navigation.navigate("Settings")}
+                  className="mx-3 mb-2 flex-row items-center gap-3 rounded-3xl bg-surface-2 px-4 py-3 active:opacity-80"
+                >
+                  <KeyRound size={20} color={colors.accent} />
+                  <Text className="flex-1 text-[14px] leading-5 text-ink">
+                    Add a free TMDB key to see where each title streams in your country.
+                  </Text>
+                  <ChevronRight size={18} color={colors.muted} />
+                </Pressable>
+              ) : null}
+            </View>
+          }
+          ListEmptyComponent={
+            list.length ? (
+              segment === "todo" ? (
+                <EmptyState
+                  icon={Tv}
+                  title="Everything is watched"
+                  body="Nice. Add something new with the + button."
+                />
+              ) : (
+                <EmptyState
+                  icon={Tv}
+                  title="Nothing watched yet"
+                  body="Swipe a title right in To watch to mark it watched."
+                />
+              )
             ) : (
               <EmptyState
-                icon={Tv}
-                title="Nothing watched yet"
-                body="Swipe a title right in To watch to mark it watched."
+                icon={Bookmark}
+                title="Your watchlist is empty"
+                body="Tap the + button to add a movie or show."
               />
             )
-          ) : (
-            <EmptyState
-              icon={Bookmark}
-              title="Your watchlist is empty"
-              body="Tap the + button to add a movie or show."
-            />
-          )
-        }
-        renderItem={({ item: g }) => {
-          if (g.length === 1) return row(g[0]!);
-          const name = List.seriesName(g);
-          return (
-            <SeriesRow
-              name={name}
-              items={g}
-              open={openSeries.has(name)}
-              onToggle={() => {
-                if (tapIsReal()) toggleSeries(name);
-              }}
-            >
-              {g.map(row)}
-            </SeriesRow>
-          );
-        }}
-      />
+          }
+          renderItem={({ item: g }) => {
+            if (g.length === 1) return row(g[0]!);
+            const name = List.seriesName(g);
+            return (
+              <SeriesRow
+                name={name}
+                items={g}
+                open={openSeries.has(name)}
+                onToggle={() => {
+                  if (tapIsReal()) toggleSeries(name);
+                }}
+              >
+                {g.map(row)}
+              </SeriesRow>
+            );
+          }}
+        />
+      </Animated.View>
       <View
         style={{ position: "absolute", left: 20, bottom: insets.bottom + 20 }}
         className="rounded-full shadow-lg"

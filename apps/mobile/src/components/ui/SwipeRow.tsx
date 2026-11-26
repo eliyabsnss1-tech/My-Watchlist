@@ -48,6 +48,8 @@ const commitDistance = (width: number) => {
   return Math.min(160, width * 0.4);
 };
 const POP = { duration: 140 };
+const CORNER = 28; // the row's corner radius
+const LABEL_W = 200; // fixed, so the label is uncovered as the gap opens instead of squeezed
 // Built once here: the gesture callbacks run on the UI thread and can't call plain JS helpers.
 const SNAP_BACK = Easing.bezier(...motion.emphasizedDecelerate);
 const FLY_OFF = Easing.bezier(...motion.standardDecelerate);
@@ -142,12 +144,16 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
   const wrapStyle = useAnimatedStyle(() =>
     height.value < 0 ? {} : { height: height.value, marginBottom: height.value > 0 ? 8 : 0 },
   );
+  // The color only fills the gap the row leaves on the side it moves away from (plus its rounded
+  // corner), so it never peeks out along the row's top or bottom edge.
   const rightBg = useAnimatedStyle(() => ({
-    opacity: x.value > 0 ? 1 : 0,
+    opacity: x.value > 0.5 ? 1 : 0,
+    width: Math.max(0, x.value) + CORNER,
     backgroundColor: right.color,
   }));
   const leftBg = useAnimatedStyle(() => ({
-    opacity: x.value < 0 ? 1 : 0,
+    opacity: x.value < -0.5 ? 1 : 0,
+    width: Math.max(0, -x.value) + CORNER,
     backgroundColor: left.color,
   }));
   const labelPop = useAnimatedStyle(() => ({
@@ -167,11 +173,21 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
     >
       <Animated.View
         style={[
-          { position: "absolute", inset: 0, justifyContent: "center", paddingHorizontal: 22 },
+          {
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            overflow: "hidden",
+            justifyContent: "center",
+            paddingHorizontal: 22,
+          },
           rightBg,
         ]}
       >
-        <Animated.View style={[{ alignSelf: "flex-start" }, labelPop]}>
+        <Animated.View
+          style={[{ alignSelf: "flex-start", width: LABEL_W, flexShrink: 0 }, labelPop]}
+        >
           <ActionLabel action={right} align="start" />
         </Animated.View>
       </Animated.View>
@@ -179,7 +195,10 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
         style={[
           {
             position: "absolute",
-            inset: 0,
+            top: 0,
+            bottom: 0,
+            right: 0,
+            overflow: "hidden",
             justifyContent: "center",
             alignItems: "flex-end",
             paddingHorizontal: 22,
@@ -187,7 +206,12 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
           leftBg,
         ]}
       >
-        <Animated.View style={[{ alignSelf: "flex-end" }, labelPop]}>
+        <Animated.View
+          style={[
+            { alignSelf: "flex-end", width: LABEL_W, flexShrink: 0, alignItems: "flex-end" },
+            labelPop,
+          ]}
+        >
           <ActionLabel action={left} align="end" />
         </Animated.View>
       </Animated.View>
