@@ -1,10 +1,22 @@
 import { Image } from "expo-image";
+import {
+  Ban,
+  CalendarClock,
+  Clock,
+  Layers,
+  Play,
+  Search,
+  ShoppingBag,
+  Star,
+  type LucideIcon,
+} from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
 import { Poster } from "../../components/ui/Poster";
 import { cn } from "../../lib/cn";
-import { fmtDate, fmtRuntime, isFuture } from "../../lib/time";
-import type { SavedTitle, Settings } from "./model";
+import { fmtDate, fmtRuntime, isFuture, year } from "../../lib/time";
+import { colors } from "../../theme";
+import { REGIONS, type SavedTitle, type Settings } from "./model";
 
 export const TMDB_IMG = "https://image.tmdb.org/t/p/";
 
@@ -26,32 +38,48 @@ const namesOf = (entries: ReadonlyArray<readonly [string, string]>) =>
     .map(([name]) => name)
     .join(", ") + (entries.length > 2 ? ` +${entries.length - 2}` : "");
 
-function whereLine(
-  item: SavedTitle,
-  settings: Settings,
-): { readonly logos: ReadonlyArray<string>; readonly text: string } {
+type Where = {
+  /** What kind of answer this is; decides the icon and color. */
+  readonly kind: "stream" | "likely" | "shop" | "coming" | "none" | "unknown";
+  readonly logos: ReadonlyArray<string>;
+  readonly text: string;
+};
+
+function whereLine(item: SavedTitle, settings: Settings): Where {
   const p = item.prov;
+  const country = REGIONS[settings.region] ?? settings.region;
   const coming = isFuture(item.date) ? `Coming ${fmtDate(item.date)}` : "";
   if (p && p.region === settings.region) {
     const s = [...p.stream, ...p.free];
-    if (s.length) return { logos: logosOf(s), text: namesOf(s) };
+    if (s.length) return { kind: "stream", logos: logosOf(s), text: `Watch on ${namesOf(s)}` };
     const likely = p.likely ?? [];
-    if (likely.length) return { logos: logosOf(likely), text: `${namesOf(likely)} (likely)` };
-    if (coming) return { logos: [], text: coming };
+    if (likely.length)
+      return { kind: "likely", logos: logosOf(likely), text: `Likely on ${namesOf(likely)}` };
+    if (coming) return { kind: "coming", logos: [], text: coming };
     const shops = [...p.rent, ...p.buy].filter(
       ([name], i, all) => all.findIndex(([n]) => n === name) === i,
     );
-    if (shops.length)
-      return {
-        logos: logosOf(shops),
-        text: `${p.rent.length && p.buy.length ? "Rent or buy" : p.rent.length ? "Rent" : "Buy"} · ${namesOf(shops)}`,
-      };
-    return { logos: [], text: `Not streaming in ${settings.region}` };
+    if (shops.length) {
+      const how = p.rent.length && p.buy.length ? "Rent or buy" : p.rent.length ? "Rent" : "Buy";
+      return { kind: "shop", logos: logosOf(shops), text: `${how} on ${namesOf(shops)}` };
+    }
+    return { kind: "none", logos: [], text: `Not streaming in ${country}` };
   }
-  if (coming) return { logos: [], text: coming };
-  if (item.channel) return { logos: [], text: `On ${item.channel}` };
-  return { logos: [], text: "Tap for where to watch" };
+  if (coming) return { kind: "coming", logos: [], text: coming };
+  if (item.channel) return { kind: "stream", logos: [], text: `On ${item.channel}` };
+  return { kind: "unknown", logos: [], text: "Where to watch: tap to check" };
 }
+
+const WHERE_STYLE: Readonly<
+  Record<Where["kind"], { readonly icon: LucideIcon; readonly color: string }>
+> = {
+  stream: { icon: Play, color: colors.ok },
+  likely: { icon: Play, color: colors.accent },
+  shop: { icon: ShoppingBag, color: colors.ink },
+  coming: { icon: CalendarClock, color: colors.star },
+  none: { icon: Ban, color: colors.muted },
+  unknown: { icon: Search, color: colors.muted },
+};
 
 /** A faint wash of the poster's colors behind the row; the title page shows them fully. */
 export function PosterTint({ uri }: { readonly uri: string }) {
@@ -73,58 +101,100 @@ export interface TitleRowProps {
   readonly onOpen: () => void;
 }
 
-/** Every row is exactly the same height: each line is one line and trims with "…". */
+/** One fact with a small icon in front, e.g. a clock and "1h 28m". */
+function Fact({
+  icon: Icon,
+  color = colors.muted,
+  children,
+}: {
+  readonly icon: LucideIcon;
+  readonly color?: string;
+  readonly children: string;
+}) {
+  return (
+    <View className="flex-row items-center gap-1">
+      <Icon size={12} color={color} strokeWidth={2.4} />
+      <Text numberOfLines={1} className="text-[12.5px] text-ink/85">
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Every row is the same height, in four levels: the title; the facts (type, year, length,
+ * rating); the genres or next episode; and where to watch, in plain words.
+ */
 export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
   const movie = item.type === "movie";
+  const yr = year(item.date);
   const length = movie
     ? fmtRuntime(item.runtime)
-    : [
-        item.seasons ? `${item.seasons} season${item.seasons > 1 ? "s" : ""}` : "",
-        item.runtime ? `${item.runtime}m/ep` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-  const released = item.date ? fmtDate(item.date) : "Release TBA";
-  const line1 = [movie ? "Movie" : "Show", movie ? released : "", length]
-    .filter(Boolean)
-    .join(" · ");
-  const line2 = [
-    item.rating ? `★ ${item.rating.toFixed(1)}` : "",
-    item.genres.slice(0, 2).join(", "),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+    : item.seasons
+      ? `${item.seasons} season${item.seasons > 1 ? "s" : ""}`
+      : "";
+  const episode = !movie && item.runtime ? `${item.runtime}m per episode` : "";
+  const nextEpisode = !movie && item.next && isFuture(item.next) ? item.next : "";
   const where = whereLine(item, settings);
+  const style = WHERE_STYLE[where.kind];
+  const WhereIcon = style.icon;
   const dim = item.watched ? "opacity-60" : "";
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}, ${line1}`}
+      accessibilityLabel={[item.title, movie ? "Movie" : "Show", yr, length, where.text]
+        .filter(Boolean)
+        .join(", ")}
       onPress={onOpen}
       className="h-[98px] flex-row items-center gap-3 overflow-hidden rounded-3xl bg-surface px-2.5"
     >
       <PosterTint uri={posterUri(item)} />
       <Poster uri={posterUri(item)} title={item.title} />
-      <View className="flex-1 justify-center">
-        <Text numberOfLines={1} className={cn("text-[16px] font-semibold leading-5 text-ink", dim)}>
+      <View className={cn("flex-1 justify-center", dim)}>
+        <Text numberOfLines={1} className="text-[16px] font-bold leading-5 text-ink">
           {item.title}
         </Text>
+        <View className="mt-1 flex-row items-center gap-2.5 overflow-hidden">
+          <View className="rounded-md bg-white/12 px-1.5 py-px">
+            <Text className="text-[10px] font-bold tracking-wider text-ink/80">
+              {movie ? "MOVIE" : "SHOW"}
+            </Text>
+          </View>
+          {movie && yr ? <Text className="text-[12.5px] text-ink/85">{yr}</Text> : null}
+          {length ? <Fact icon={movie ? Clock : Layers}>{length}</Fact> : null}
+          {!movie && episode && !length ? <Fact icon={Clock}>{episode}</Fact> : null}
+          {item.rating ? (
+            <Fact icon={Star} color={colors.star}>
+              {item.rating.toFixed(1)}
+            </Fact>
+          ) : null}
+        </View>
         <Text
           numberOfLines={1}
-          className={cn("mt-0.5 text-[12.5px] leading-[17px] text-muted", dim)}
+          className={cn(
+            "mt-0.5 text-[12px] leading-4",
+            nextEpisode ? "font-semibold text-accent" : "text-muted",
+          )}
         >
-          {line1}
-          {movie && isFuture(item.date) ? "  ·  Upcoming" : ""}
+          {nextEpisode
+            ? `New episode ${fmtDate(nextEpisode)}`
+            : [item.genres.slice(0, 2).join(", "), episode && length ? episode : ""]
+                .filter(Boolean)
+                .join(" · ") || " "}
         </Text>
-        <Text numberOfLines={1} className={cn("text-[12.5px] leading-[17px] text-muted", dim)}>
-          {line2 || " "}
-        </Text>
-        <View className={cn("mt-1 h-5 flex-row items-center gap-1", dim)}>
+        <View className="mt-1.5 h-5 flex-row items-center gap-1.5">
+          <WhereIcon size={13} color={style.color} strokeWidth={2.6} />
           {where.logos.map((uri) => (
-            <Image key={uri} source={{ uri }} style={{ width: 20, height: 20, borderRadius: 6 }} />
+            <Image key={uri} source={{ uri }} style={{ width: 18, height: 18, borderRadius: 5 }} />
           ))}
-          <Text numberOfLines={1} className="ml-0.5 flex-1 text-[12.5px] text-ink/80">
+          <Text
+            numberOfLines={1}
+            style={{
+              color: where.kind === "none" || where.kind === "unknown" ? colors.muted : style.color,
+            }}
+            className="flex-1 text-[12.5px] font-semibold"
+          >
             {where.text}
           </Text>
         </View>
