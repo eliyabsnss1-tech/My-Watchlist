@@ -143,7 +143,7 @@ export const seriesName = (group: ReadonlyArray<SavedTitle>): string => {
 /** Titles to base suggestions on: the newest additions from both tabs. */
 export const suggestionSeeds = (list: ReadonlyArray<SavedTitle>, count = 6): Array<SavedTitle> => {
   const newest = (xs: ReadonlyArray<SavedTitle>) =>
-    xs.filter((x) => x.src === "tmdb").sort((a, b) => b.added - a.added);
+    xs.filter((x) => x.src === "tmdb" || (x.tmdbId ?? 0) > 0).sort((a, b) => b.added - a.added);
   const todo = newest(list.filter((x) => !x.watched));
   const done = newest(list.filter((x) => x.watched));
   const half = Math.ceil(count / 2);

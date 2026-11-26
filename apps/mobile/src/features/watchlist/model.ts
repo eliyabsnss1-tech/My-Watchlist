@@ -52,6 +52,8 @@ export const CatalogItem = Schema.Struct({
   refreshed: Schema.optional(Schema.Number),
   /** The movie series (TMDB collection) a movie belongs to; null once TMDB said it has none. */
   coll: Schema.optional(Schema.NullOr(Schema.Struct({ id: Schema.Number, name: Schema.String }))),
+  /** For titles from iTunes or TVmaze: the matching TMDB id (0 when TMDB has no match). */
+  tmdbId: Schema.optional(Schema.Number),
 });
 export type CatalogItem = typeof CatalogItem.Type;
 

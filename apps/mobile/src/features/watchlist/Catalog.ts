@@ -160,6 +160,33 @@ const TmdbRegionProviders = Schema.Struct({
   results: Schema.Array(Schema.Struct({ provider_name: Schema.String })),
 });
 
+const simplify = (t: string) =>
+  t
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+/**
+ * Same name first (search ranks "Hamilton: History Has Its Eyes On You" above "Hamilton"), and
+ * among same-name titles the one from the same year (The Lion King 2019, not 1994).
+ */
+const bestMatch = (
+  title: string,
+  year: string,
+  results: ReadonlyArray<typeof TmdbListItem.Type>,
+) => {
+  const want = simplify(title);
+  const same = results.filter((r) => simplify(r.title ?? r.name ?? "") === want);
+  const released = (r: typeof TmdbListItem.Type) =>
+    (r.release_date ?? r.first_air_date ?? "").slice(0, 4);
+  return (
+    same.find((r) => year && released(r) === year) ??
+    same[0] ??
+    results.find((r) => simplify(r.title ?? r.name ?? "").startsWith(want)) ??
+    results[0]
+  );
+};
+
 const availability = (
   d: typeof TmdbDetails.Type,
   region: string,
@@ -429,20 +456,14 @@ const make = Effect.gen(function* () {
     return names;
   });
 
-  const details = Effect.fn("Catalog.details")(function* (item: CatalogItem, settings: Settings) {
-    const now = yield* Clock.currentTimeMillis;
-    if (item.src === "itunes") return {};
-    if (item.src === "tvmaze") {
-      const show = yield* freeGet(
-        "tvmaze",
-        `https://api.tvmaze.com/shows/${item.id}?embed=episodes`,
-        TvmazeShow,
-      );
-      return fromTvmaze(show, DateTime.formatIsoDateUtc(DateTime.makeUnsafe(now)), now);
-    }
-    if (!settings.tmdbKey) return {};
+  const tmdbDetails = Effect.fn("Catalog.tmdbDetails")(function* (
+    type: MediaType,
+    id: number,
+    settings: Settings,
+    now: number,
+  ) {
     const d = yield* tmdbGet(
-      `/${item.type}/${item.id}`,
+      `/${type}/${id}`,
       {
         language: settings.lang,
         append_to_response: "watch/providers,videos",
@@ -454,17 +475,72 @@ const make = Effect.gen(function* () {
     const tracked = yield* trackedIn(settings.region, settings.tmdbKey).pipe(
       Effect.orElseSucceed(() => undefined),
     );
-    return fromTmdbDetails(d, item.type, settings.region, now, tracked);
+    return fromTmdbDetails(d, type, settings.region, now, tracked);
+  });
+
+  // A title saved from iTunes or TVmaze: find the same title on TMDB by name and year.
+  const findOnTmdb = Effect.fn("Catalog.findOnTmdb")(function* (
+    item: CatalogItem,
+    settings: Settings,
+  ) {
+    const path = item.type === "movie" ? "/search/movie" : "/search/tv";
+    // `year` matches any release of a movie (Hamilton: streamed 2020, in cinemas 2025).
+    const yearParam = item.type === "movie" ? "year" : "first_air_date_year";
+    const yr = item.date.slice(0, 4);
+    const search = (params: Record<string, string>) =>
+      tmdbGet(
+        path,
+        { query: item.title, language: settings.lang, ...params },
+        settings.tmdbKey,
+        TmdbList,
+      );
+    const withYear = yr ? yield* search({ [yearParam]: yr }) : { results: [] };
+    const found = withYear.results.length ? withYear : yield* search({});
+    return bestMatch(item.title, yr, found.results)?.id ?? 0;
+  });
+
+  const details = Effect.fn("Catalog.details")(function* (item: CatalogItem, settings: Settings) {
+    const now = yield* Clock.currentTimeMillis;
+    if (item.src === "tmdb") {
+      if (!settings.tmdbKey) return {};
+      return yield* tmdbDetails(item.type, item.id, settings, now);
+    }
+    const own: Partial<CatalogItem> =
+      item.src === "tvmaze"
+        ? fromTvmaze(
+            yield* freeGet(
+              "tvmaze",
+              `https://api.tvmaze.com/shows/${item.id}?embed=episodes`,
+              TvmazeShow,
+            ),
+            DateTime.formatIsoDateUtc(DateTime.makeUnsafe(now)),
+            now,
+          )
+        : {};
+    if (!settings.tmdbKey) return own;
+    // Where to watch comes from TMDB, so borrow it from the matching TMDB title; keep the rest.
+    const tmdbId = item.tmdbId ?? (yield* findOnTmdb(item, settings));
+    if (!tmdbId) return { ...own, tmdbId: 0, refreshed: now };
+    const t = yield* tmdbDetails(item.type, tmdbId, settings, now);
+    return {
+      ...own,
+      tmdbId,
+      prov: t.prov,
+      coll: t.coll,
+      genres: own.genres?.length ? own.genres : (t.genres ?? item.genres),
+      refreshed: now,
+    };
   });
 
   const recommendations = Effect.fn("Catalog.recommendations")(function* (
     item: CatalogItem,
     settings: Settings,
   ) {
-    if (!settings.tmdbKey || item.src !== "tmdb") return [];
+    const id = item.src === "tmdb" ? item.id : item.tmdbId;
+    if (!settings.tmdbKey || !id) return [];
     const get = (kind: "recommendations" | "similar") =>
       tmdbGet(
-        `/${item.type}/${item.id}/${kind}`,
+        `/${item.type}/${id}/${kind}`,
         { language: settings.lang },
         settings.tmdbKey,
         TmdbList,

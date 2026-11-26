@@ -149,8 +149,17 @@ export const refreshStaleAtom = runtime.atom((get) =>
     const stale = get
       .once(listAtom)
       .filter((x) => {
-        if (x.src === "itunes") return false;
-        if (x.src === "tvmaze") return !x.refreshed || now - x.refreshed > WEEK;
+        const old = !x.refreshed || now - x.refreshed > WEEK;
+        if (x.src !== "tmdb") {
+          if (!settings.tmdbKey) return x.src === "tvmaze" && old;
+          // Not matched to TMDB yet, or its where-to-watch is missing, stale or for another country.
+          return (
+            x.tmdbId === undefined ||
+            (x.src === "tvmaze" && old) ||
+            (x.tmdbId > 0 &&
+              (old || !x.prov || x.prov.region !== settings.region || x.prov.likely === undefined))
+          );
+        }
         return (
           !!settings.tmdbKey &&
           (!x.prov ||
