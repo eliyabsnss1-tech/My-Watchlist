@@ -50,6 +50,21 @@ const measure = (ref: RefObject<HostInstance | null>) =>
 
 let nextFlight = 1;
 
+// Rows sit inside the native swipe gesture. When a touch turns into a list scroll, the row's
+// press handler isn't told, so lifting the finger would count as a tap. Ignore taps that happen
+// while the list is moving or right after it stopped.
+let scrolling = false;
+let scrollStoppedAt = 0;
+const scrollStarted = () => {
+  scrolling = true;
+};
+const scrollStopped = () => {
+  scrolling = false;
+  scrollStoppedAt = performance.now();
+};
+const tapIsReal = () =>
+  !scrolling && performance.now() - scrollStoppedAt > 200 && !swipedRecently();
+
 export function WatchlistScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WatchlistParamList>>();
   const list = useAtomValue(listAtom);
@@ -94,6 +109,7 @@ export function WatchlistScreen() {
       to: { x: x - origin.x, y: target.y + target.h / 2 - origin.y },
       icon: action.icon,
       color: action.color,
+      label: to === "deleted" ? "Deleted" : to === "done" ? "Watched" : "To watch",
     };
     setFlights((f) => [...f, flight]);
   };
@@ -121,7 +137,7 @@ export function WatchlistScreen() {
         item={item}
         settings={settings}
         onOpen={() => {
-          if (!swipedRecently()) navigation.navigate("Details", { key: item.key });
+          if (tapIsReal()) navigation.navigate("Details", { key: item.key });
         }}
       />
     </SwipeRow>
@@ -169,6 +185,10 @@ export function WatchlistScreen() {
         </View>
       ) : null}
       <LegendList
+        onScrollBeginDrag={scrollStarted}
+        onScrollEndDrag={scrollStopped}
+        onMomentumScrollBegin={scrollStarted}
+        onMomentumScrollEnd={scrollStopped}
         data={groups}
         keyExtractor={(g) => (g.length > 1 ? `series:${List.seriesName(g)}` : g[0]!.key)}
         estimatedItemSize={106}
@@ -220,7 +240,9 @@ export function WatchlistScreen() {
               name={name}
               items={g}
               open={openSeries.has(name)}
-              onToggle={() => toggleSeries(name)}
+              onToggle={() => {
+                if (tapIsReal()) toggleSeries(name);
+              }}
             >
               {g.map(row)}
             </SeriesRow>

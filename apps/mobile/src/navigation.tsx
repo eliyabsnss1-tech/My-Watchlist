@@ -44,8 +44,8 @@ const WatchlistStack = createNativeStackNavigator({
     WatchlistHome: { screen: WatchlistScreen, linking: "" },
     Settings: SettingsScreen,
     // myapps://watchlist/add and myapps://watchlist/title/<key> are opened by the widget and notifications.
-    Search: { screen: SearchSheet, options: sheet, linking: "add" },
-    Details: { screen: DetailsSheet, options: sheet, linking: "title/:key" },
+    Search: { screen: SearchSheet, options: dragSheet, linking: "add" },
+    Details: { screen: DetailsSheet, options: dragSheet, linking: "title/:key" },
     Stats: { screen: StatsSheet, options: dragSheet },
     Deleted: { screen: DeletedSheet, options: dragSheet },
   },

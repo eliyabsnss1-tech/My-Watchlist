@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useRef, type ReactNode } from "react";
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { ChevronDown } from "lucide-react-native";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
+import { Pressable, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
 import { GestureDetector, ScrollView, usePanGesture } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -20,6 +21,11 @@ import { AppText } from "./AppText";
 export interface DragSheetProps {
   readonly title?: string;
   readonly subtitle?: string;
+  /** Stays put above the scrolling content (e.g. a search field). */
+  readonly header?: ReactNode;
+  /** Drawn behind everything, e.g. a title's poster as the sheet's backdrop. */
+  readonly backdrop?: ReactNode;
+  readonly scrollRef?: Ref<ScrollViewInstance | null>;
   readonly children: ReactNode;
 }
 
@@ -33,7 +39,14 @@ const FLING_VELOCITY = 600;
  * Bottom sheet for a `transparentModal` route. Drag it down from anywhere once its content is
  * scrolled to the top; it follows the finger and leaves at the finger's speed.
  */
-export function DragSheet({ title, subtitle, children }: DragSheetProps) {
+export function DragSheet({
+  title,
+  subtitle,
+  header,
+  backdrop,
+  scrollRef,
+  children,
+}: DragSheetProps) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { height: screen } = useWindowDimensions();
@@ -124,11 +137,32 @@ export function DragSheet({ title, subtitle, children }: DragSheetProps) {
             style={[{ height, borderTopLeftRadius: 28, borderTopRightRadius: 28 }, sheetStyle]}
             className="overflow-hidden bg-bg"
           >
-            <View className="items-center pb-1 pt-3">
-              <View className="h-1.5 w-12 rounded-full bg-surface-3" />
+            {backdrop}
+            <View accessibilityHint="Swipe down to close" className="items-center pb-1 pt-2.5">
+              <View className="h-1.5 w-14 rounded-full bg-muted/50" />
+              <ChevronDown
+                size={16}
+                color={colors.muted}
+                strokeWidth={2.4}
+                style={{ marginTop: 1 }}
+              />
             </View>
+            {title || subtitle || header ? (
+              <View className="px-5 pb-2">
+                {title ? <AppText variant="title">{title}</AppText> : null}
+                {subtitle ? (
+                  <AppText variant="caption" className="mt-1">
+                    {subtitle}
+                  </AppText>
+                ) : null}
+                {header}
+              </View>
+            ) : null}
             <ScrollView
+              ref={scrollRef}
               simultaneousWith={pan}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               onScroll={(e) => {
                 scrollY.set(e.nativeEvent.contentOffset.y);
               }}
@@ -136,15 +170,7 @@ export function DragSheet({ title, subtitle, children }: DragSheetProps) {
               overScrollMode="never"
               contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}
             >
-              <View className="px-5 pt-2">
-                {title ? <AppText variant="title">{title}</AppText> : null}
-                {subtitle ? (
-                  <AppText variant="caption" className="mt-1">
-                    {subtitle}
-                  </AppText>
-                ) : null}
-              </View>
-              <View className="px-5 pt-4">{children}</View>
+              <View className="px-5 pt-2">{children}</View>
             </ScrollView>
           </Animated.View>
         </GestureDetector>

@@ -58,7 +58,8 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
       ]
         .filter(Boolean)
         .join(" · ");
-  const line1 = [movie ? "Movie" : "Show", item.date ? fmtDate(item.date) : "Release TBA", length]
+  const released = item.date ? fmtDate(item.date) : "Release TBA";
+  const line1 = [movie ? "Movie" : "Show", movie ? released : "", length]
     .filter(Boolean)
     .join(" · ");
   const line2 = [
@@ -87,7 +88,7 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
           className={cn("mt-0.5 text-[12.5px] leading-[17px] text-muted", dim)}
         >
           {line1}
-          {isFuture(item.date) ? "  ·  Upcoming" : ""}
+          {movie && isFuture(item.date) ? "  ·  Upcoming" : ""}
         </Text>
         <Text numberOfLines={1} className={cn("text-[12.5px] leading-[17px] text-muted", dim)}>
           {line2 || " "}

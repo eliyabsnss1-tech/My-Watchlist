@@ -9,6 +9,7 @@ import { AppBar } from "../../components/ui/AppBar";
 import { AppText } from "../../components/ui/AppText";
 import { Button } from "../../components/ui/Button";
 import { ChoiceChips } from "../../components/ui/ChoiceChips";
+import { Dropdown } from "../../components/ui/Dropdown";
 import { Screen } from "../../components/ui/Screen";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
 import { Surface } from "../../components/ui/Surface";
@@ -137,7 +138,8 @@ export function SettingsScreen() {
         </Group>
 
         <Group title="Where to watch (country)">
-          <ChoiceChips
+          <Dropdown
+            label="Where to watch"
             options={REGIONS}
             value={settings.region}
             onChange={(region) => setSettings({ ...settings, region })}
@@ -145,7 +147,8 @@ export function SettingsScreen() {
         </Group>
 
         <Group title="Sort my list by">
-          <ChoiceChips
+          <Dropdown
+            label="Sort my list by"
             options={SORT_LABELS}
             value={settings.sort}
             onChange={(sort) => setSettings({ ...settings, sort })}

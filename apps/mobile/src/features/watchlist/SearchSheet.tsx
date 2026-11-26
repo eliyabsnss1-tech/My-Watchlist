@@ -4,14 +4,13 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AsyncResult } from "effect/reactivity";
 import { Check, Film, Plus, Search, X } from "lucide-react-native";
 import { useRef } from "react";
-import { Pressable, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, Text, View, type ScrollViewInstance } from "react-native";
 
 import { AppText } from "../../components/ui/AppText";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { IconButton } from "../../components/ui/IconButton";
 import { Poster } from "../../components/ui/Poster";
-import { Sheet } from "../../components/ui/Sheet";
+import { DragSheet } from "../../components/ui/DragSheet";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
 import { TextField } from "../../components/ui/TextField";
 import { haptic } from "../../lib/haptics";
@@ -95,7 +94,6 @@ export function SearchSheet() {
   const settings = useAtomValue(settingsAtom);
   const add = useAtomSet(addTitleAtom);
   const setSnack = useAtomSet(snackAtom);
-  const insets = useSafeAreaInsets();
   const savedKeys = new Set(list.map((x) => x.key));
   const scroll = useRef<ScrollViewInstance>(null);
   const search = (text: string) => {
@@ -122,8 +120,8 @@ export function SearchSheet() {
   const found = AsyncResult.isSuccess(result) ? result.value : undefined;
 
   return (
-    <Sheet
-      scroll={false}
+    <DragSheet
+      scrollRef={scroll}
       title="Add to watchlist"
       header={
         <TextField
@@ -132,24 +130,13 @@ export function SearchSheet() {
           value={query}
           onChangeText={search}
           placeholder="Search movies & shows"
-          autoFocus
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
         />
       }
     >
-      <ScrollView
-        ref={scroll}
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          paddingBottom: insets.bottom + 24,
-        }}
-      >
+      <View className="-mx-1 pt-2">
         {query ? (
           <Pressable
             onPress={() => search("")}
@@ -212,7 +199,7 @@ export function SearchSheet() {
             body={query.trim() ? "Try another spelling." : "Type a name to search."}
           />
         ) : null}
-      </ScrollView>
-    </Sheet>
+      </View>
+    </DragSheet>
   );
 }

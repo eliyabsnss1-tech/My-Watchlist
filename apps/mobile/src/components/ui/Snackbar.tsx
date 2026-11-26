@@ -1,13 +1,11 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
-import { Check, Info, RotateCcw, Trash2, type LucideIcon } from "lucide-react-native";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
-import Animated, { Easing, FadeInRight, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { haptic } from "../../lib/haptics";
-import { colors, motion } from "../../theme";
 
 export interface Snack {
   readonly id: number;
@@ -19,13 +17,11 @@ export interface Snack {
 }
 
 const SNACK_MS = 5000;
-const KINDS: Readonly<Record<Snack["kind"], { icon: LucideIcon; color: string; message: string }>> =
-  {
-    deleted: { icon: Trash2, color: colors.danger, message: "Deleted" },
-    watched: { icon: Check, color: colors.ok, message: "Marked watched" },
-    unwatched: { icon: RotateCcw, color: colors.accent, message: "Back to To watch" },
-    info: { icon: Info, color: colors.accent, message: "" },
-  };
+const MESSAGES: Readonly<Record<Exclude<Snack["kind"], "info">, string>> = {
+  deleted: "Deleted",
+  watched: "Marked watched",
+  unwatched: "Back to To watch",
+};
 
 export const snackAtom = Atom.make<Snack | null>(null).pipe(Atom.keepAlive);
 
@@ -37,7 +33,7 @@ export function SnackbarHost() {
   const setSnack = useAtomSet(snackAtom);
   const insets = useSafeAreaInsets();
 
-  // oxlint-disable-next-line apps/no-unreasoned-state-sync -- a timer is an external system: hide the pill after it runs out.
+  // oxlint-disable-next-line apps/no-unreasoned-state-sync -- a timer is an external system: hide the row after it runs out.
   useEffect(() => {
     if (!snack) return;
     // @effect-diagnostics-next-line globalTimers:off - a React-owned UI timer, cleared on unmount.
@@ -46,54 +42,39 @@ export function SnackbarHost() {
   }, [snack, setSnack]);
 
   if (!snack) return null;
-  const k = KINDS[snack.kind];
-  const Icon = k.icon;
   const undo = snack.undo;
-  // Swipe actions say only what happened (the title flies to where it went); notes show both lines.
-  const line1 = snack.kind === "info" ? snack.title : k.message;
-  const line2 = snack.kind === "info" ? snack.message : undefined;
+  const text =
+    snack.kind === "info"
+      ? [snack.title, snack.message].filter(Boolean).join(" · ")
+      : `${MESSAGES[snack.kind]}: ${snack.title}`;
   return (
     <Animated.View
       key={snack.id}
-      entering={FadeInRight.duration(260).easing(Easing.bezierFn(...motion.emphasizedDecelerate))}
-      exiting={FadeOut.duration(160)}
+      entering={FadeIn.duration(180)}
+      exiting={FadeOut.duration(140)}
       pointerEvents="box-none"
-      style={{ position: "absolute", right: 12, bottom: insets.bottom + 35, maxWidth: "66%" }}
+      // A plain row along the bottom, beside the + button (which sits at left 20, 64 wide).
+      style={{ position: "absolute", left: 96, right: 12, bottom: insets.bottom + 30 }}
     >
-      <View className="min-h-[34px] flex-row items-center gap-1.5 overflow-hidden rounded-[17px] border border-line bg-surface-2 py-0.5 pl-1.5 pr-0.5">
-        <View
-          style={{ backgroundColor: k.color }}
-          className="size-5 items-center justify-center rounded-full"
-        >
-          <Icon size={11} color="#06102a" strokeWidth={2.8} />
-        </View>
-        <View className="shrink">
-          <Text numberOfLines={1} className="text-[12px] text-ink">
-            {line1}
-          </Text>
-          {line2 ? (
-            <Text numberOfLines={1} className="text-[11px] text-muted">
-              {line2}
-            </Text>
-          ) : null}
-        </View>
+      <View className="h-11 flex-row items-center rounded-2xl bg-surface-2 pl-4 pr-1">
+        <Text numberOfLines={1} className="flex-1 text-[14px] text-ink">
+          {text}
+        </Text>
         {undo ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Undo: ${k.message} ${snack.title}`}
+            accessibilityLabel={`Undo: ${text}`}
             hitSlop={8}
             onPress={() => {
               setSnack(null);
               undo();
               haptic("light");
             }}
-            className="h-7 justify-center rounded-full px-2.5 active:bg-surface-3"
+            className="h-9 justify-center rounded-xl px-3 active:bg-surface-3"
           >
-            <Text className="text-[12px] font-bold text-accent">Undo</Text>
+            <Text className="text-[14px] font-bold text-accent">Undo</Text>
           </Pressable>
-        ) : (
-          <View className="w-1.5" />
-        )}
+        ) : null}
       </View>
     </Animated.View>
   );

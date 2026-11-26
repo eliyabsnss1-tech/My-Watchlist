@@ -2,6 +2,7 @@ import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { AsyncResult } from "effect/reactivity";
 import { Check, ExternalLink, Play, Plus, Share2, Star, Trash2 } from "lucide-react-native";
 import { Linking, Pressable, ScrollView, Share, Text, View } from "react-native";
@@ -10,7 +11,7 @@ import { AppText } from "../../components/ui/AppText";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Poster } from "../../components/ui/Poster";
-import { Sheet } from "../../components/ui/Sheet";
+import { DragSheet } from "../../components/ui/DragSheet";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
 import { Surface } from "../../components/ui/Surface";
 import { haptic } from "../../lib/haptics";
@@ -74,6 +75,29 @@ function ProviderGroup({
   );
 }
 
+/** The title's own poster, blurred and darkened, so each page takes on its colors. */
+function Backdrop({ uri }: { readonly uri: string }) {
+  if (!uri) return null;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <Image
+        source={{ uri }}
+        blurRadius={36}
+        contentFit="cover"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.75 }}
+      />
+      <LinearGradient
+        colors={["rgba(2,5,13,0.35)", "rgba(2,5,13,0.78)", "rgba(2,5,13,0.92)"]}
+        locations={[0, 0.35, 1]}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+    </View>
+  );
+}
+
 /** Related titles TMDB recommends for this one; tap one to open its page. */
 function MoreLikeThis({ itemKey }: { readonly itemKey: string }) {
   const navigation = useNavigation<NativeStackNavigationProp<WatchlistParamList>>();
@@ -122,13 +146,13 @@ export function DetailsSheet() {
   const it: CatalogItem | undefined = saved ?? loaded ?? base;
   if (!it) {
     return (
-      <Sheet>
+      <DragSheet>
         <EmptyState
           icon={Star}
           title="Not found"
           body="This title isn't in your list or the latest search."
         />
-      </Sheet>
+      </DragSheet>
     );
   }
 
@@ -153,7 +177,7 @@ export function DetailsSheet() {
   const shareUrl = it.url || `https://www.themoviedb.org/${it.type}/${it.id}`;
 
   return (
-    <Sheet>
+    <DragSheet backdrop={<Backdrop uri={posterUri(it, true)} />}>
       <View className="flex-row gap-4">
         <Poster uri={posterUri(it, true)} title={it.title} size="lg" />
         <View className="flex-1 pt-1">
@@ -300,6 +324,6 @@ export function DetailsSheet() {
         Movie data: Apple iTunes Search. TV data: TVmaze (CC BY-SA). With a key: this product uses
         the TMDB API but is not endorsed or certified by TMDB. Streaming availability by JustWatch.
       </AppText>
-    </Sheet>
+    </DragSheet>
   );
 }
