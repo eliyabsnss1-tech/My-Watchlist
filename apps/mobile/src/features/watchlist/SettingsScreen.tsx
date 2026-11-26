@@ -94,7 +94,7 @@ export function SettingsScreen() {
     <Screen>
       <AppBar title="Settings" leading="back" />
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 100 }}
         keyboardShouldPersistTaps="handled"
       >
         <Group title="TMDB key">
