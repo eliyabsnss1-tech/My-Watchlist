@@ -54,6 +54,11 @@ export function DragSheet({
   const y = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const startAt = useSharedValue(0);
+  // Height of the top part (handle, title, header such as a search field) and whether the
+  // finger started there: dragging from the top always moves the sheet, however far the list
+  // below is scrolled.
+  const topHeight = useSharedValue(0);
+  const fromTop = useSharedValue(false);
   const leaving = useRef(false);
 
   const finish = () => {
@@ -83,12 +88,13 @@ export function DragSheet({
     onActivate: (e) => {
       "worklet";
       startAt.set(e.translationY);
+      fromTop.set(e.y - e.translationY < topHeight.get());
     },
     onUpdate: (e) => {
       "worklet";
       // While the content is still scrolling up, keep re-anchoring so the sheet starts moving
       // exactly when the content reaches its top.
-      if (scrollY.get() > 0 && y.get() === 0) {
+      if (!fromTop.get() && scrollY.get() > 0 && y.get() === 0) {
         startAt.set(e.translationY);
         return;
       }
@@ -138,26 +144,32 @@ export function DragSheet({
             className="overflow-hidden bg-bg"
           >
             {backdrop}
-            <View accessibilityHint="Swipe down to close" className="items-center pb-1 pt-2.5">
-              <View className="h-1.5 w-14 rounded-full bg-muted/50" />
-              <ChevronDown
-                size={16}
-                color={colors.muted}
-                strokeWidth={2.4}
-                style={{ marginTop: 1 }}
-              />
-            </View>
-            {title || subtitle || header ? (
-              <View className="px-5 pb-2">
-                {title ? <AppText variant="title">{title}</AppText> : null}
-                {subtitle ? (
-                  <AppText variant="caption" className="mt-1">
-                    {subtitle}
-                  </AppText>
-                ) : null}
-                {header}
+            <View
+              onLayout={(e) => {
+                topHeight.set(e.nativeEvent.layout.height);
+              }}
+            >
+              <View accessibilityHint="Swipe down to close" className="items-center pb-1 pt-2.5">
+                <View className="h-1.5 w-14 rounded-full bg-muted/50" />
+                <ChevronDown
+                  size={16}
+                  color={colors.muted}
+                  strokeWidth={2.4}
+                  style={{ marginTop: 1 }}
+                />
               </View>
-            ) : null}
+              {title || subtitle || header ? (
+                <View className="px-5 pb-2">
+                  {title ? <AppText variant="title">{title}</AppText> : null}
+                  {subtitle ? (
+                    <AppText variant="caption" className="mt-1">
+                      {subtitle}
+                    </AppText>
+                  ) : null}
+                  {header}
+                </View>
+              ) : null}
+            </View>
             <ScrollView
               ref={scrollRef}
               simultaneousWith={pan}
