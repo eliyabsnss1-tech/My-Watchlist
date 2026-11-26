@@ -6,6 +6,7 @@ const SIZES = {
   md: { width: 54, height: 81, radius: 12, font: 22 },
   tile: { width: 96, height: 144, radius: 14, font: 32 },
   lg: { width: 116, height: 174, radius: 20, font: 40 },
+  hero: { width: 168, height: 252, radius: 22, font: 56 },
 } as const;
 
 export interface PosterProps {

@@ -1,15 +1,5 @@
 import { Image } from "expo-image";
-import {
-  Ban,
-  CalendarClock,
-  Clock,
-  Layers,
-  Play,
-  Search,
-  ShoppingBag,
-  Star,
-  type LucideIcon,
-} from "lucide-react-native";
+import { Clock, Layers, Star, type LucideIcon } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
 import { Poster } from "../../components/ui/Poster";
@@ -39,10 +29,12 @@ const namesOf = (entries: ReadonlyArray<readonly [string, string]>) =>
     .join(", ") + (entries.length > 2 ? ` +${entries.length - 2}` : "");
 
 type Where = {
-  /** What kind of answer this is; decides the icon and color. */
+  /** What kind of answer this is; decides the color. */
   readonly kind: "stream" | "likely" | "shop" | "coming" | "none" | "unknown";
   readonly logos: ReadonlyArray<string>;
   readonly text: string;
+  /** A quiet word after the name, e.g. "rent or buy". */
+  readonly note?: string;
 };
 
 function whereLine(item: SavedTitle, settings: Settings): Where {
@@ -51,17 +43,17 @@ function whereLine(item: SavedTitle, settings: Settings): Where {
   const coming = isFuture(item.date) ? `Coming ${fmtDate(item.date)}` : "";
   if (p && p.region === settings.region) {
     const s = [...p.stream, ...p.free];
-    if (s.length) return { kind: "stream", logos: logosOf(s), text: `Watch on ${namesOf(s)}` };
+    if (s.length) return { kind: "stream", logos: logosOf(s), text: namesOf(s) };
     const likely = p.likely ?? [];
     if (likely.length)
-      return { kind: "likely", logos: logosOf(likely), text: `Likely on ${namesOf(likely)}` };
+      return { kind: "likely", logos: logosOf(likely), text: namesOf(likely), note: "probably" };
     if (coming) return { kind: "coming", logos: [], text: coming };
     const shops = [...p.rent, ...p.buy].filter(
       ([name], i, all) => all.findIndex(([n]) => n === name) === i,
     );
     if (shops.length) {
       const how = p.rent.length && p.buy.length ? "Rent or buy" : p.rent.length ? "Rent" : "Buy";
-      return { kind: "shop", logos: logosOf(shops), text: `${how} on ${namesOf(shops)}` };
+      return { kind: "shop", logos: logosOf(shops), text: namesOf(shops), note: how.toLowerCase() };
     }
     return { kind: "none", logos: [], text: `Not streaming in ${country}` };
   }
@@ -70,15 +62,13 @@ function whereLine(item: SavedTitle, settings: Settings): Where {
   return { kind: "unknown", logos: [], text: "Where to watch: tap to check" };
 }
 
-const WHERE_STYLE: Readonly<
-  Record<Where["kind"], { readonly icon: LucideIcon; readonly color: string }>
-> = {
-  stream: { icon: Play, color: colors.ok },
-  likely: { icon: Play, color: colors.accent },
-  shop: { icon: ShoppingBag, color: colors.ink },
-  coming: { icon: CalendarClock, color: colors.star },
-  none: { icon: Ban, color: colors.muted },
-  unknown: { icon: Search, color: colors.muted },
+const WHERE_COLOR: Readonly<Record<Where["kind"], string>> = {
+  stream: colors.ink,
+  likely: colors.ink,
+  shop: colors.ink,
+  coming: colors.star,
+  none: colors.muted,
+  unknown: colors.muted,
 };
 
 /** A faint wash of the poster's colors behind the row; the title page shows them fully. */
@@ -136,8 +126,6 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
   const episode = !movie && item.runtime ? `${item.runtime}m per episode` : "";
   const nextEpisode = !movie && item.next && isFuture(item.next) ? item.next : "";
   const where = whereLine(item, settings);
-  const style = WHERE_STYLE[where.kind];
-  const WhereIcon = style.icon;
   const dim = item.watched ? "opacity-60" : "";
 
   return (
@@ -184,18 +172,18 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
                 .join(" · ") || " "}
         </Text>
         <View className="mt-1.5 h-5 flex-row items-center gap-1.5">
-          <WhereIcon size={13} color={style.color} strokeWidth={2.6} />
           {where.logos.map((uri) => (
             <Image key={uri} source={{ uri }} style={{ width: 18, height: 18, borderRadius: 5 }} />
           ))}
           <Text
             numberOfLines={1}
-            style={{
-              color: where.kind === "none" || where.kind === "unknown" ? colors.muted : style.color,
-            }}
+            style={{ color: WHERE_COLOR[where.kind] }}
             className="flex-1 text-[12.5px] font-semibold"
           >
             {where.text}
+            {where.note ? (
+              <Text className="font-normal text-muted">{` · ${where.note}`}</Text>
+            ) : null}
           </Text>
         </View>
       </View>

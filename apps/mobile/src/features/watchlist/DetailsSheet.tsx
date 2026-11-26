@@ -4,16 +4,27 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { AsyncResult } from "effect/reactivity";
-import { Check, ExternalLink, Play, Plus, Share2, Star, Trash2 } from "lucide-react-native";
+import {
+  Check,
+  ExternalLink,
+  Play,
+  Plus,
+  RotateCcw,
+  Share2,
+  Star,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react-native";
 import { Linking, Pressable, ScrollView, Share, Text, View } from "react-native";
 
 import { AppText } from "../../components/ui/AppText";
-import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Poster } from "../../components/ui/Poster";
 import { DragSheet } from "../../components/ui/DragSheet";
 import { makeSnack, snackAtom } from "../../components/ui/Snackbar";
+import { cn } from "../../lib/cn";
 import { haptic } from "../../lib/haptics";
+import { colors } from "../../theme";
 import { fmtDate, fmtRuntime, isFuture, year } from "../../lib/time";
 import type { WatchlistParamList } from "../../navigation-types";
 import { REGIONS, type Availability, type CatalogItem } from "./model";
@@ -36,12 +47,50 @@ function Section({
   readonly children: React.ReactNode;
 }) {
   return (
-    <View className="mt-6">
-      <AppText variant="overline" className="mb-2.5">
-        {title}
-      </AppText>
+    <View className="mt-7">
+      <Text className="mb-3 text-[18px] font-bold text-ink">{title}</Text>
       {children}
     </View>
+  );
+}
+
+/** A round icon with a short word under it, like a player's controls. */
+function Action({
+  icon: Icon,
+  label,
+  onPress,
+  primary,
+  danger,
+}: {
+  readonly icon: LucideIcon;
+  readonly label: string;
+  readonly onPress: () => void;
+  readonly primary?: boolean;
+  readonly danger?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className="w-[84px] items-center gap-1.5 active:opacity-70"
+    >
+      <View
+        className={cn(
+          "size-14 items-center justify-center rounded-full",
+          primary ? "bg-primary" : "bg-white/12",
+        )}
+      >
+        <Icon
+          size={24}
+          strokeWidth={2.2}
+          color={primary ? colors.onPrimary : danger ? colors.danger : colors.ink}
+        />
+      </View>
+      <Text numberOfLines={1} className={cn("text-[12px]", danger ? "text-danger" : "text-ink/85")}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -54,22 +103,30 @@ function ProviderGroup({
 }) {
   if (!entries.length) return null;
   return (
-    <View className="mb-2 flex-row flex-wrap items-center gap-2">
-      <Text className="w-14 text-[13px] text-muted">{label}</Text>
-      {entries.map(([name, logo]) => (
-        <View
-          key={name}
-          className="flex-row items-center gap-1.5 rounded-full bg-black/30 py-1 pl-1 pr-3"
-        >
-          {logo ? (
-            <Image
-              source={{ uri: `${TMDB_IMG}w92${logo}` }}
-              style={{ width: 26, height: 26, borderRadius: 13 }}
-            />
-          ) : null}
-          <Text className="text-[13px] text-ink">{name}</Text>
-        </View>
-      ))}
+    <View className="mb-4">
+      <Text className="mb-2 text-[13px] text-muted">{label}</Text>
+      <View className="flex-row flex-wrap gap-4">
+        {entries.map(([name, logo]) => (
+          <View key={name} className="w-[68px] items-center gap-1.5">
+            {logo ? (
+              <Image
+                source={{ uri: `${TMDB_IMG}w154${logo}` }}
+                style={{ width: 52, height: 52, borderRadius: 14 }}
+              />
+            ) : (
+              <View className="size-[52px] items-center justify-center rounded-[14px] bg-white/12">
+                <Text className="text-[18px] font-bold text-ink">{name.charAt(0)}</Text>
+              </View>
+            )}
+            <Text
+              numberOfLines={2}
+              className="text-center text-[11.5px] leading-[14px] text-ink/85"
+            >
+              {name}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -177,53 +234,52 @@ export function DetailsSheet() {
 
   return (
     <DragSheet backdrop={<Backdrop uri={posterUri(it, true)} />}>
-      <View className="flex-row gap-4">
-        <Poster uri={posterUri(it, true)} title={it.title} size="lg" />
-        <View className="flex-1 pt-1">
-          <AppText variant="heading" className="text-[22px] leading-7">
-            {it.title}
-          </AppText>
-          <AppText variant="caption" className="mt-1">
-            {[
-              year(it.date) || "TBA",
-              it.type === "movie" ? "Movie" : "TV show",
-              it.type === "movie"
-                ? fmtRuntime(it.runtime)
-                : it.seasons
-                  ? `${it.seasons} season${it.seasons > 1 ? "s" : ""}`
-                  : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </AppText>
-          {it.tagline ? (
-            <Text className="mt-2 text-[14px] italic text-muted">{it.tagline}</Text>
-          ) : null}
-          <View className="mt-2.5 flex-row flex-wrap gap-1.5">
-            {it.genres.map((g) => (
-              <View key={g} className="rounded-full bg-black/30 px-3 py-1">
-                <Text className="text-[12px] text-muted">{g}</Text>
-              </View>
-            ))}
-          </View>
+      <View className="items-center pt-1">
+        <View className="shadow-2xl">
+          <Poster uri={posterUri(it, true)} title={it.title} size="hero" />
         </View>
+        <Text className="mt-4 text-center text-[28px] font-bold leading-[34px] tracking-tight text-ink">
+          {it.title}
+        </Text>
+        <Text className="mt-1.5 text-center text-[14px] text-ink/75">
+          {[
+            year(it.date) || "TBA",
+            it.type === "movie" ? "Movie" : "TV show",
+            it.type === "movie"
+              ? fmtRuntime(it.runtime)
+              : it.seasons
+                ? `${it.seasons} season${it.seasons > 1 ? "s" : ""}`
+                : "",
+            it.rating ? `★ ${it.rating.toFixed(1)}` : "",
+          ]
+            .filter(Boolean)
+            .join("  ·  ")}
+        </Text>
+        {it.genres.length ? (
+          <Text className="mt-1 text-center text-[13px] text-muted">
+            {it.genres.slice(0, 3).join(" · ")}
+          </Text>
+        ) : null}
+        {it.tagline ? (
+          <Text className="mt-3 px-4 text-center text-[15px] italic leading-5 text-ink/80">
+            “{it.tagline}”
+          </Text>
+        ) : null}
       </View>
 
-      <View className="mt-5 gap-2.5">
+      <View className="mt-6 flex-row justify-center gap-2">
         {saved ? (
-          <Button
-            tone="primary"
-            size="lg"
-            icon={Check}
-            label={saved.watched ? "Watched · tap to undo" : "Mark as watched"}
+          <Action
+            primary
+            icon={saved.watched ? RotateCcw : Check}
+            label={saved.watched ? "Unwatch" : "Mark watched"}
             onPress={() => actions.toggleWatched(saved, false)}
           />
         ) : (
-          <Button
-            tone="primary"
-            size="lg"
+          <Action
+            primary
             icon={Plus}
-            label="Add to watchlist"
+            label="Add"
             onPress={() => {
               add(it);
               haptic("success");
@@ -233,46 +289,35 @@ export function DetailsSheet() {
             }}
           />
         )}
-        <View className="flex-row gap-2.5">
-          {trailer ? (
-            <Button
-              tone="glass"
-              className="flex-1"
-              icon={Play}
-              label="Trailer"
-              onPress={() => void Linking.openURL(trailer)}
-            />
-          ) : null}
-          <Button
-            tone="glass"
-            className="flex-1"
-            icon={Share2}
-            label="Share"
-            onPress={() =>
-              void Share.share({
-                message: `${it.title}${it.date ? ` (${year(it.date)})` : ""} ${shareUrl}`,
-              })
-            }
+        {trailer ? (
+          <Action icon={Play} label="Trailer" onPress={() => void Linking.openURL(trailer)} />
+        ) : null}
+        <Action
+          icon={Share2}
+          label="Share"
+          onPress={() =>
+            void Share.share({
+              message: `${it.title}${it.date ? ` (${year(it.date)})` : ""} ${shareUrl}`,
+            })
+          }
+        />
+        {saved ? (
+          <Action
+            danger
+            icon={Trash2}
+            label="Delete"
+            onPress={() => {
+              navigation.goBack();
+              actions.remove(saved);
+            }}
           />
-          {saved ? (
-            <Button
-              className="flex-1"
-              tone="glassDanger"
-              icon={Trash2}
-              label="Delete"
-              onPress={() => {
-                navigation.goBack();
-                actions.remove(saved);
-              }}
-            />
-          ) : null}
-        </View>
+        ) : null}
       </View>
 
       <Section
         title={
           prov
-            ? `Where to watch · ${REGIONS[settings.region] ?? settings.region}`
+            ? `Where to watch in ${REGIONS[settings.region] ?? settings.region}`
             : "Where to watch"
         }
       >
@@ -283,16 +328,26 @@ export function DetailsSheet() {
           prov.buy.length ||
           prov.likely?.length ? (
             <>
-              <ProviderGroup label="Stream" entries={prov.stream} />
-              <ProviderGroup label="Likely" entries={prov.likely ?? []} />
+              <ProviderGroup label="Streaming" entries={prov.stream} />
+              <ProviderGroup label="Probably streaming" entries={prov.likely ?? []} />
               {prov.likely?.length ? (
                 <AppText variant="caption" className="mb-2">
-                  {`"Likely": TMDB doesn't track ${prov.likely.map(([n]) => n).join(", ")} in ${REGIONS[settings.region] ?? settings.region}, but this title streams there in most other countries.`}
+                  {`"Probably": TMDB doesn't track ${prov.likely.map(([n]) => n).join(", ")} in ${REGIONS[settings.region] ?? settings.region}, but this title streams there in most other countries.`}
                 </AppText>
               ) : null}
               <ProviderGroup label="Free" entries={prov.free} />
-              <ProviderGroup label="Rent" entries={prov.rent} />
-              <ProviderGroup label="Buy" entries={prov.buy} />
+              <ProviderGroup
+                label={
+                  prov.rent.length && prov.buy.length
+                    ? "Rent or buy"
+                    : prov.rent.length
+                      ? "Rent"
+                      : "Buy"
+                }
+                entries={[...prov.rent, ...prov.buy].filter(
+                  ([name], i, all) => all.findIndex(([n]) => n === name) === i,
+                )}
+              />
             </>
           ) : (
             <AppText variant="caption">
@@ -304,27 +359,28 @@ export function DetailsSheet() {
             Original network: {it.channel}
           </AppText>
         ) : null}
-        <Button
-          tone="glass"
-          className="mt-1"
-          icon={ExternalLink}
-          label="Check JustWatch"
+        <Pressable
+          accessibilityRole="link"
           onPress={() => void Linking.openURL(prov?.link || justWatch)}
-        />
+          className="mt-1 flex-row items-center gap-1.5 self-start py-1 active:opacity-60"
+        >
+          <Text className="text-[14px] font-semibold text-accent">More options on JustWatch</Text>
+          <ExternalLink size={14} color={colors.accent} strokeWidth={2.4} />
+        </Pressable>
       </Section>
 
       {it.overview ? (
-        <Section title="Overview">
-          <AppText className="leading-6">{it.overview}</AppText>
+        <Section title="Story">
+          <Text className="text-[15.5px] leading-6 text-ink/90">{it.overview}</Text>
         </Section>
       ) : null}
 
       <Section title="Details">
-        <View className="gap-2.5 rounded-3xl bg-black/30 p-4">
+        <View className="gap-3">
           {facts.map(([k, v]) => (
-            <View key={k} className="flex-row justify-between gap-4">
-              <Text className="text-[14px] text-muted">{k}</Text>
-              <Text className="flex-1 text-right text-[14px] text-ink">{v}</Text>
+            <View key={k}>
+              <Text className="text-[12.5px] text-muted">{k}</Text>
+              <Text className="text-[15px] text-ink">{v}</Text>
             </View>
           ))}
         </View>
