@@ -6,7 +6,7 @@ import {
   CalendarClock,
   Clapperboard,
   Hourglass,
-  PartyPopper,
+  Heart,
   Timer,
   Tv,
   type LucideIcon,
@@ -202,7 +202,7 @@ export function StatsSheet() {
 
       {s.topGenres.length ? (
         <>
-          <Heading icon={PartyPopper} title="What you're into" />
+          <Heading icon={Heart} title="What you're into" />
           <Surface className="gap-3">
             {s.topGenres.map((g) => (
               <View key={g.name}>
