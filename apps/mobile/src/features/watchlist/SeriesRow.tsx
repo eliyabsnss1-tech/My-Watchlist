@@ -8,7 +8,7 @@ import { cn } from "../../lib/cn";
 import { fmtRuntime, year } from "../../lib/time";
 import { colors } from "../../theme";
 import type { SavedTitle } from "./model";
-import { posterUri } from "./TitleRow";
+import { PosterTint, posterUri } from "./TitleRow";
 
 export interface SeriesRowProps {
   readonly name: string;
@@ -54,6 +54,7 @@ export function SeriesRow({ name, items, open, onToggle, children }: SeriesRowPr
         onPress={onToggle}
         className="mx-3 h-[98px] flex-row items-center gap-3 overflow-hidden rounded-3xl border border-primary/40 bg-surface-2 pl-2.5 pr-2.5 active:opacity-90"
       >
+        <PosterTint uri={posterUri(items[0]!)} />
         <View style={{ width: 54 + 2 * FAN, height: 81 }}>
           {fan.map((x, i) => (
             <View

@@ -9,6 +9,9 @@ const TONES = {
   secondary: { box: "bg-surface-2", text: "text-ink", icon: colors.ink },
   danger: { box: "bg-surface-2", text: "text-danger", icon: colors.danger },
   ghost: { box: "bg-transparent", text: "text-accent", icon: colors.accent },
+  /** See-through, for buttons over a picture (a title page's poster backdrop). */
+  glass: { box: "bg-white/12", text: "text-ink", icon: colors.ink },
+  glassDanger: { box: "bg-white/12", text: "text-danger", icon: colors.danger },
 } as const;
 
 const SIZES = {

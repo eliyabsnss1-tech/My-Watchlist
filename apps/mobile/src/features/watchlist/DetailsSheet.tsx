@@ -84,12 +84,12 @@ function Backdrop({ uri }: { readonly uri: string }) {
     >
       <Image
         source={{ uri }}
-        blurRadius={22}
+        blurRadius={14}
         contentFit="cover"
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
       <LinearGradient
-        colors={["rgba(2,5,13,0.05)", "rgba(2,5,13,0.5)", "rgba(2,5,13,0.72)"]}
+        colors={["rgba(2,5,13,0)", "rgba(2,5,13,0.38)", "rgba(2,5,13,0.6)"]}
         locations={[0, 0.4, 1]}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
@@ -236,6 +236,7 @@ export function DetailsSheet() {
         <View className="flex-row gap-2.5">
           {trailer ? (
             <Button
+              tone="glass"
               className="flex-1"
               icon={Play}
               label="Trailer"
@@ -243,6 +244,7 @@ export function DetailsSheet() {
             />
           ) : null}
           <Button
+            tone="glass"
             className="flex-1"
             icon={Share2}
             label="Share"
@@ -255,7 +257,7 @@ export function DetailsSheet() {
           {saved ? (
             <Button
               className="flex-1"
-              tone="danger"
+              tone="glassDanger"
               icon={Trash2}
               label="Delete"
               onPress={() => {
@@ -303,6 +305,7 @@ export function DetailsSheet() {
           </AppText>
         ) : null}
         <Button
+          tone="glass"
           className="mt-1"
           icon={ExternalLink}
           label="Check JustWatch"

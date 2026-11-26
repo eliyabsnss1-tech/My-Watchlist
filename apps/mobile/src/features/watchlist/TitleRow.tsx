@@ -17,34 +17,54 @@ export const posterUri = (
   return item.poster;
 };
 
+const logosOf = (entries: ReadonlyArray<readonly [string, string]>) =>
+  entries.slice(0, 3).flatMap(([, logo]) => (logo ? [`${TMDB_IMG}w92${logo}`] : []));
+
+const namesOf = (entries: ReadonlyArray<readonly [string, string]>) =>
+  entries
+    .slice(0, 2)
+    .map(([name]) => name)
+    .join(", ") + (entries.length > 2 ? ` +${entries.length - 2}` : "");
+
 function whereLine(
   item: SavedTitle,
   settings: Settings,
 ): { readonly logos: ReadonlyArray<string>; readonly text: string } {
   const p = item.prov;
+  const coming = isFuture(item.date) ? `Coming ${fmtDate(item.date)}` : "";
   if (p && p.region === settings.region) {
     const s = [...p.stream, ...p.free];
-    if (s.length)
-      return {
-        logos: s.slice(0, 3).flatMap(([, logo]) => (logo ? [`${TMDB_IMG}w92${logo}`] : [])),
-        text:
-          s
-            .slice(0, 2)
-            .map(([name]) => name)
-            .join(", ") + (s.length > 2 ? ` +${s.length - 2}` : ""),
-      };
+    if (s.length) return { logos: logosOf(s), text: namesOf(s) };
     const likely = p.likely ?? [];
-    if (likely.length)
+    if (likely.length) return { logos: logosOf(likely), text: `${namesOf(likely)} (likely)` };
+    if (coming) return { logos: [], text: coming };
+    const shops = [...p.rent, ...p.buy].filter(
+      ([name], i, all) => all.findIndex(([n]) => n === name) === i,
+    );
+    if (shops.length)
       return {
-        logos: likely.slice(0, 2).flatMap(([, logo]) => (logo ? [`${TMDB_IMG}w92${logo}`] : [])),
-        text: `${likely[0]![0]} (likely)`,
+        logos: logosOf(shops),
+        text: `${p.rent.length && p.buy.length ? "Rent or buy" : p.rent.length ? "Rent" : "Buy"} · ${namesOf(shops)}`,
       };
-    if (p.rent.length || p.buy.length)
-      return { logos: [], text: `Rent or buy only in ${settings.region}` };
     return { logos: [], text: `Not streaming in ${settings.region}` };
   }
+  if (coming) return { logos: [], text: coming };
   if (item.channel) return { logos: [], text: `On ${item.channel}` };
   return { logos: [], text: "Tap for where to watch" };
+}
+
+/** A faint wash of the poster's colors behind the row; the title page shows them fully. */
+export function PosterTint({ uri }: { readonly uri: string }) {
+  if (!uri) return null;
+  return (
+    <Image
+      source={{ uri }}
+      blurRadius={24}
+      contentFit="cover"
+      pointerEvents="none"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.22 }}
+    />
+  );
 }
 
 export interface TitleRowProps {
@@ -82,8 +102,9 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
       accessibilityRole="button"
       accessibilityLabel={`${item.title}, ${line1}`}
       onPress={onOpen}
-      className="h-[98px] flex-row items-center gap-3 rounded-3xl bg-surface px-2.5"
+      className="h-[98px] flex-row items-center gap-3 overflow-hidden rounded-3xl bg-surface px-2.5"
     >
+      <PosterTint uri={posterUri(item)} />
       <Poster uri={posterUri(item)} title={item.title} />
       <View className="flex-1 justify-center">
         <Text numberOfLines={1} className={cn("text-[16px] font-semibold leading-5 text-ink", dim)}>
