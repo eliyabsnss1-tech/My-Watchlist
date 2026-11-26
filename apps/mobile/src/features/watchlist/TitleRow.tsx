@@ -33,6 +33,12 @@ function whereLine(
             .map(([name]) => name)
             .join(", ") + (s.length > 2 ? ` +${s.length - 2}` : ""),
       };
+    const likely = p.likely ?? [];
+    if (likely.length)
+      return {
+        logos: likely.slice(0, 2).flatMap(([, logo]) => (logo ? [`${TMDB_IMG}w92${logo}`] : [])),
+        text: `${likely[0]![0]} (likely)`,
+      };
     if (p.rent.length || p.buy.length)
       return { logos: [], text: `Rent or buy only in ${settings.region}` };
     return { logos: [], text: `Not streaming in ${settings.region}` };

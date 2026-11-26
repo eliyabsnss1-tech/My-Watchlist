@@ -275,9 +275,19 @@ export function DetailsSheet() {
         }
       >
         {prov ? (
-          prov.stream.length || prov.free.length || prov.rent.length || prov.buy.length ? (
+          prov.stream.length ||
+          prov.free.length ||
+          prov.rent.length ||
+          prov.buy.length ||
+          prov.likely?.length ? (
             <>
               <ProviderGroup label="Stream" entries={prov.stream} />
+              <ProviderGroup label="Likely" entries={prov.likely ?? []} />
+              {prov.likely?.length ? (
+                <AppText variant="caption" className="mb-2">
+                  {`"Likely": TMDB doesn't track ${prov.likely.map(([n]) => n).join(", ")} in ${REGIONS[settings.region] ?? settings.region}, but this title streams there in most other countries.`}
+                </AppText>
+              ) : null}
               <ProviderGroup label="Free" entries={prov.free} />
               <ProviderGroup label="Rent" entries={prov.rent} />
               <ProviderGroup label="Buy" entries={prov.buy} />

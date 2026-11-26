@@ -157,6 +157,7 @@ export const refreshStaleAtom = runtime.atom((get) =>
             x.prov.region !== settings.region ||
             !x.refreshed ||
             now - x.refreshed > WEEK ||
+            x.prov.likely === undefined ||
             (x.type === "movie" && x.coll === undefined))
         );
       })

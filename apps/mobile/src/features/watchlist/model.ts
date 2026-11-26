@@ -20,6 +20,8 @@ export const Availability = Schema.Struct({
   free: orDefault(Schema.Array(ProviderEntry), []),
   rent: orDefault(Schema.Array(ProviderEntry), []),
   buy: orDefault(Schema.Array(ProviderEntry), []),
+  /** Services TMDB doesn't track in this country but that stream the title in most others. */
+  likely: Schema.optional(Schema.Array(ProviderEntry)),
 });
 export type Availability = typeof Availability.Type;
 

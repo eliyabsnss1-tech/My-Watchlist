@@ -7,6 +7,7 @@ import * as Schema from "effect/Schema";
 import { HttpClient, HttpClientResponse } from "effect/http";
 
 import type { Availability, CatalogItem, MediaType, Settings } from "./model";
+import { likelyProviders } from "./likelyProviders";
 
 const opt = <S extends Schema.Constraint>(schema: S) => Schema.optional(Schema.NullOr(schema));
 
@@ -155,7 +156,15 @@ const fromTmdbListItem = (r: typeof TmdbListItem.Type, type: MediaType): Catalog
   runtime: 0,
 });
 
-const availability = (d: typeof TmdbDetails.Type, region: string): Availability => {
+const TmdbRegionProviders = Schema.Struct({
+  results: Schema.Array(Schema.Struct({ provider_name: Schema.String })),
+});
+
+const availability = (
+  d: typeof TmdbDetails.Type,
+  region: string,
+  tracked: ReadonlySet<string> | undefined,
+): Availability => {
   const v = d["watch/providers"]?.results[region];
   const list = (a: ReadonlyArray<typeof TmdbProvider.Type> | null | undefined) =>
     (a ?? []).map((p) => [p.provider_name, p.logo_path ?? ""] as const);
@@ -166,6 +175,7 @@ const availability = (d: typeof TmdbDetails.Type, region: string): Availability 
     free: [...list(v?.free), ...list(v?.ads)],
     rent: list(v?.rent),
     buy: list(v?.buy),
+    likely: tracked ? likelyProviders(d["watch/providers"]?.results ?? {}, region, tracked) : [],
   };
 };
 
@@ -174,6 +184,7 @@ const fromTmdbDetails = (
   type: MediaType,
   region: string,
   now: number,
+  tracked: ReadonlySet<string> | undefined,
 ): Partial<CatalogItem> => {
   const vids = (d.videos?.results ?? []).filter((x) => x.site === "YouTube");
   const trailer =
@@ -190,7 +201,7 @@ const fromTmdbDetails = (
     tagline: d.tagline ?? "",
     trailer: trailer?.key ?? "",
     status: d.status ?? "",
-    prov: availability(d, region),
+    prov: availability(d, region, tracked),
     refreshed: now,
   };
   if (type === "movie") {
@@ -399,6 +410,25 @@ const make = Effect.gen(function* () {
     );
   });
 
+  // Which services TMDB tracks in a country at all; asked once per country.
+  const trackedCache = new Map<string, ReadonlySet<string>>();
+  const trackedIn = Effect.fn("Catalog.trackedIn")(function* (region: string, key: string) {
+    const cached = trackedCache.get(region);
+    if (cached) return cached;
+    const [movies, shows] = yield* Effect.all(
+      [
+        tmdbGet("/watch/providers/movie", { watch_region: region }, key, TmdbRegionProviders),
+        tmdbGet("/watch/providers/tv", { watch_region: region }, key, TmdbRegionProviders),
+      ],
+      { concurrency: 2 },
+    );
+    const names: ReadonlySet<string> = new Set(
+      [...movies.results, ...shows.results].map((p) => p.provider_name),
+    );
+    trackedCache.set(region, names);
+    return names;
+  });
+
   const details = Effect.fn("Catalog.details")(function* (item: CatalogItem, settings: Settings) {
     const now = yield* Clock.currentTimeMillis;
     if (item.src === "itunes") return {};
@@ -421,7 +451,10 @@ const make = Effect.gen(function* () {
       settings.tmdbKey,
       TmdbDetails,
     );
-    return fromTmdbDetails(d, item.type, settings.region, now);
+    const tracked = yield* trackedIn(settings.region, settings.tmdbKey).pipe(
+      Effect.orElseSucceed(() => undefined),
+    );
+    return fromTmdbDetails(d, item.type, settings.region, now, tracked);
   });
 
   const recommendations = Effect.fn("Catalog.recommendations")(function* (
