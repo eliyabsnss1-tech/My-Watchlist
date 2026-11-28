@@ -26,6 +26,12 @@ export interface SwipeRowProps {
   /** Revealed when the row is dragged to the left. */
   readonly left: SwipeAction;
   readonly onSwipe: (direction: "right" | "left") => void;
+  /**
+   * This direction flips the page instead of moving the row: the row springs back and
+   * `onPage` runs once the drag passes a short distance.
+   */
+  readonly pageSide?: "right" | "left";
+  readonly onPage?: () => void;
   /** As soon as a swipe is let go: the row's center on screen, for showing where it goes. */
   readonly onLaunch?: (
     direction: "right" | "left",
@@ -51,6 +57,7 @@ const commitDistance = (width: number) => {
   return Math.min(160, width * 0.4);
 };
 const POP = { duration: 140 };
+const PAGE_SHARE = 0.6; // flipping the page needs a shorter drag than moving a title
 const CORNER = 28; // the row's corner radius
 const LABEL_W = 200; // fixed, so the label is uncovered as the gap opens instead of squeezed
 // Built once here: the gesture callbacks run on the UI thread and can't call plain JS helpers.
@@ -78,7 +85,15 @@ function ActionLabel({
   );
 }
 
-export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowProps) {
+export function SwipeRow({
+  right,
+  left,
+  onSwipe,
+  onLaunch,
+  pageSide,
+  onPage,
+  children,
+}: SwipeRowProps) {
   const drag = useSharedValue(0);
   const pop = useSharedValue(0);
   // What the row shows: a resisted fraction of the finger, and the full finger once popped.
@@ -92,6 +107,7 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
   const launch = (direction: "right" | "left") =>
     wrap.current?.measureInWindow((x, y, w, h) => onLaunch?.(direction, { x, y, w, h }));
   const commit = (direction: "right" | "left") => onSwipe(direction);
+  const page = () => onPage?.();
   const buzz = () => haptic("medium");
 
   const pan = usePanGesture({
@@ -104,7 +120,9 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
     onUpdate: (e) => {
       "worklet";
       drag.value = e.translationX;
-      const nowArmed = Math.abs(e.translationX) > commitDistance(width.value);
+      const toPage = (e.translationX > 0 ? "right" : "left") === pageSide;
+      const reach = commitDistance(width.value) * (toPage ? PAGE_SHARE : 1);
+      const nowArmed = Math.abs(e.translationX) > reach;
       if (nowArmed !== armed.value) {
         armed.value = nowArmed;
         pop.value = withTiming(nowArmed ? 1 : 0, POP);
@@ -120,13 +138,24 @@ export function SwipeRow({ right, left, onSwipe, onLaunch, children }: SwipeRowP
         Math.abs(tx) > commitDistance(width.value) * 0.7 &&
         Math.sign(v) === Math.sign(tx);
       armed.value = false;
+      const direction = tx > 0 ? "right" : "left";
+      if (direction === pageSide) {
+        // Flip the page: the row itself stays put.
+        const far = Math.abs(tx) > commitDistance(width.value) * PAGE_SHARE;
+        drag.value = withTiming(0, { duration: 320, easing: SNAP_BACK });
+        pop.value = withTiming(0, POP);
+        if (!e.canceled && (far || flung)) {
+          scheduleOnRN(markSwipe);
+          scheduleOnRN(page);
+        }
+        return;
+      }
       if (e.canceled || !(Math.abs(tx) > commitDistance(width.value) || flung)) {
         drag.value = withTiming(0, { duration: 320, easing: SNAP_BACK });
         pop.value = withTiming(0, POP);
         return;
       }
       scheduleOnRN(markSwipe);
-      const direction = tx > 0 ? "right" : "left";
       scheduleOnRN(launch, direction);
       const target = Math.sign(tx) * (width.value + 20);
       const remaining = Math.abs(target - tx);

@@ -1,10 +1,12 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Clock, Layers, Star, type LucideIcon } from "lucide-react-native";
-import { Pressable, Text, View } from "react-native";
+import { Clock, Layers, Star, Trash2, type LucideIcon } from "lucide-react-native";
+import { useRef } from "react";
+import { Pressable, Text, View, type HostInstance } from "react-native";
 
 import { Poster } from "../../components/ui/Poster";
 import { cn } from "../../lib/cn";
+import { haptic } from "../../lib/haptics";
 import { fmtDate, fmtRuntime, isFuture, year } from "../../lib/time";
 import { colors } from "../../theme";
 import { REGIONS, type SavedTitle, type Settings } from "./model";
@@ -101,6 +103,35 @@ export interface TitleRowProps {
   readonly item: SavedTitle;
   readonly settings: Settings;
   readonly onOpen: () => void;
+  /** Shows a trash button on the right; gets the button's spot on screen. */
+  readonly onDelete?: ((from: { x: number; y: number; w: number; h: number }) => void) | undefined;
+}
+
+function TrashButton({
+  title,
+  onDelete,
+}: {
+  readonly title: string;
+  readonly onDelete: NonNullable<TitleRowProps["onDelete"]>;
+}) {
+  const ref = useRef<HostInstance>(null);
+  return (
+    <Pressable
+      ref={ref}
+      accessibilityRole="button"
+      accessibilityLabel={`Delete ${title}`}
+      hitSlop={8}
+      onPress={() => {
+        haptic("light");
+        const button = ref.current;
+        if (!button) return onDelete({ x: 0, y: 0, w: 0, h: 0 });
+        button.measureInWindow((x, y, w, h) => onDelete({ x, y, w, h }));
+      }}
+      className="size-10 items-center justify-center rounded-full bg-white/10 active:bg-danger/25"
+    >
+      <Trash2 size={19} color={colors.danger} strokeWidth={2.2} />
+    </Pressable>
+  );
 }
 
 /** One fact with a small icon in front, e.g. a clock and "1h 28m". */
@@ -127,7 +158,7 @@ function Fact({
  * Every row is the same height, in four levels: the title; the facts (type, year, length,
  * rating); the genres or next episode; and where to watch, in plain words.
  */
-export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
+export function TitleRow({ item, settings, onOpen, onDelete }: TitleRowProps) {
   const movie = item.type === "movie";
   const yr = year(item.date);
   const length = movie
@@ -199,6 +230,7 @@ export function TitleRow({ item, settings, onOpen }: TitleRowProps) {
           </Text>
         </View>
       </View>
+      {onDelete ? <TrashButton title={item.title} onDelete={onDelete} /> : null}
     </Pressable>
   );
 }

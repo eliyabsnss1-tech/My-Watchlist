@@ -6,6 +6,8 @@ import {
   BarChart3,
   Bookmark,
   Check,
+  ArrowLeft,
+  ArrowRight,
   ChevronRight,
   History,
   KeyRound,
@@ -38,7 +40,9 @@ import { useWatchlistActions } from "./useWatchlistActions";
 
 const DELETE: SwipeAction = { label: "Delete", icon: Trash2, color: colors.danger };
 const WATCHED: SwipeAction = { label: "Watched", icon: Check, color: colors.ok };
-const UNWATCH: SwipeAction = { label: "Not watched", icon: RotateCcw, color: colors.accent };
+const UNWATCH: SwipeAction = { label: "To watch", icon: RotateCcw, color: colors.accent };
+const TO_WATCHED_PAGE: SwipeAction = { label: "Watched", icon: ArrowRight, color: colors.muted };
+const TO_TODO_PAGE: SwipeAction = { label: "To watch", icon: ArrowLeft, color: colors.muted };
 
 type Point = { readonly x: number; readonly y: number };
 type Rect = Point & { readonly w: number; readonly h: number };
@@ -86,8 +90,11 @@ export function WatchlistScreen() {
       return next;
     });
   // To watch: right = watched, left = delete. Watched: right = delete, left = back to To watch.
-  const right = segment === "todo" ? WATCHED : DELETE;
-  const left = segment === "todo" ? DELETE : UNWATCH;
+  // To watch: swipe a row left = it's watched; swipe right = flip to the Watched page.
+  // Watched:  swipe a row right = back to To watch; swipe left = flip to the To watch page.
+  const right = segment === "todo" ? TO_WATCHED_PAGE : UNWATCH;
+  const left = segment === "todo" ? WATCHED : TO_TODO_PAGE;
+  const pageSide = segment === "todo" ? "right" : "left";
 
   // Show where a swiped title went: a badge flies to the tab or to Recently deleted.
   const layer = useRef<HostInstance>(null);
@@ -134,20 +141,12 @@ export function WatchlistScreen() {
       key={item.key}
       right={right}
       left={left}
-      onLaunch={(dir, from) => {
-        const isDelete = item.watched ? dir === "right" : dir === "left";
-        void fly(
-          from,
-          isDelete ? "deleted" : item.watched ? "todo" : "done",
-          dir === "right" ? right : left,
-          item,
-        );
+      pageSide={pageSide}
+      onPage={() => setSegment(segment === "todo" ? "done" : "todo")}
+      onLaunch={(_dir, from) => {
+        void fly(from, item.watched ? "todo" : "done", item.watched ? UNWATCH : WATCHED, item);
       }}
-      onSwipe={(dir) => {
-        const isDelete = item.watched ? dir === "right" : dir === "left";
-        if (isDelete) actions.remove(item);
-        else actions.toggleWatched(item, true);
-      }}
+      onSwipe={() => actions.toggleWatched(item, true)}
     >
       <TitleRow
         item={item}
@@ -155,6 +154,14 @@ export function WatchlistScreen() {
         onOpen={() => {
           if (tapIsReal()) navigation.navigate("Details", { key: item.key });
         }}
+        onDelete={
+          item.watched
+            ? (from) => {
+                void fly(from, "deleted", DELETE, item);
+                actions.remove(item);
+              }
+            : undefined
+        }
       />
     </SwipeRow>
   );
@@ -245,7 +252,7 @@ export function WatchlistScreen() {
                 <EmptyState
                   icon={Tv}
                   title="Nothing watched yet"
-                  body="Swipe a title right in To watch to mark it watched."
+                  body="Swipe a title left in To watch to mark it watched."
                 />
               )
             ) : (
